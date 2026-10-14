@@ -71,7 +71,7 @@ const routes = [
                         path: "batches",
                         name: "batches",
                         component: () =>
-                            import(/* webpackChunkName: "batches" */"./views/app/pages/products/batches")
+                            import(/* webpackChunkName: "batches_20261014" */"./views/app/pages/products/batches")
                     },
                     {
                         path: "serials",

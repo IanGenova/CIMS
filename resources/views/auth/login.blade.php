@@ -36,7 +36,7 @@
         <login-component></login-component>
       </div>
 
-      <script src="/js/login.min.js?v=3.3.2"></script>
+      <script src="/js/login.min.js?v=3.3.4"></script>
   </body>
 </html>
 

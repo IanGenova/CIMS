@@ -96,19 +96,6 @@
             <div class="triangle"></div>
           </li>
           <li
-            v-show="currentUserPermissions && currentUserPermissions.includes('Pos_view')"
-            @mouseenter="toggleSubMenu"
-            :class="{ active: selectedParentMenu == 'pos' }"
-            class="nav-item"
-            data-item="pos"
-          >
-            <router-link tag="a" class="nav-item-hold" to="/app/pos">
-              <i class="nav-icon i-Cash-register2"></i>
-              <span class="nav-text">{{$t('PosScreen')}}</span>
-            </router-link>
-            <div class="triangle"></div>
-          </li>
-          <li
             v-show="currentUserPermissions && (currentUserPermissions.includes('Sales_view')
                         || currentUserPermissions.includes('Sales_add'))"
             class="nav-item"

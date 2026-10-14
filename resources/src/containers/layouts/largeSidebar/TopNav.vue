@@ -16,6 +16,15 @@
 
     <div class="header-part-right">
 
+      <router-link
+        v-if="currentUserPermissions && currentUserPermissions.includes('Pos_view')"
+        to="/app/pos"
+        class="btn btn-primary btn-sm mr-2"
+        :aria-label="$t('PosScreen')"
+      >
+        <i class="i-Cash-register2"></i><span class="d-none d-sm-inline ml-1">{{ $t('PosScreen') }}</span>
+      </router-link>
+
       <!-- Full screen toggle -->
       <i class="i-Full-Screen header-icon d-none d-sm-inline-block" @click="handleFullScreen"></i>
       <!-- Grid menu Dropdown -->

@@ -26,7 +26,7 @@ const top = {};
 for (const m of sidebar.matchAll(/<li\s+v-show="([\s\S]*?)"[\s\S]*?data-item="([^"]+)"/g)) {
   top[m[2]] = perms(m[1]);
 }
-// Plain top-level items with no condition (Dashboard, POS) are found by data-item alone.
+// Plain top-level items with no condition (Dashboard) are found by data-item alone.
 for (const m of sidebar.matchAll(/data-item="([^"]+)"/g)) {
   if (!(m[1] in top)) top[m[1]] = null;
 }

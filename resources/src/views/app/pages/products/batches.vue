@@ -3,6 +3,35 @@
     <breadcumb :page="$t('Batches')" :folder="$t('Products')"/>
     <div v-if="isLoading" class="loading_page spinner spinner-primary mr-3"></div>
 
+    <b-row v-if="!isLoading" class="mb-3">
+      <b-col cols="12" sm="6" lg="3">
+        <b-form-group :label="$t('warehouse')">
+          <v-select
+            @input="Get_Batches(1)"
+            v-model="warehouse_id"
+            :reduce="label => label.value"
+            :placeholder="$t('Choose_Warehouse')"
+            :options="warehouses.map(w => ({label: w.name, value: w.id}))"
+          />
+        </b-form-group>
+      </b-col>
+      <b-col cols="12" sm="6" lg="3">
+        <b-form-group :label="$t('ExpiryStatus')">
+          <v-select
+            @input="Get_Batches(1)"
+            v-model="status"
+            :reduce="label => label.value"
+            :placeholder="$t('All')"
+            :options="[
+              {label: $t('Expired'),  value: 'expired'},
+              {label: $t('Expiring'), value: 'expiring'},
+              {label: $t('Ok'),       value: 'ok'},
+            ]"
+          />
+        </b-form-group>
+      </b-col>
+    </b-row>
+
     <vue-good-table
       v-if="!isLoading"
       mode="remote"
@@ -21,37 +50,6 @@
       }"
       styleClass="table-hover tableOne vgt-table"
     >
-      <div slot="table-actions" class="mt-2 mb-3">
-        <b-row>
-          <b-col md="5">
-            <b-form-group :label="$t('warehouse')">
-              <v-select
-                @input="Get_Batches(1)"
-                v-model="warehouse_id"
-                :reduce="label => label.value"
-                :placeholder="$t('Choose_Warehouse')"
-                :options="warehouses.map(w => ({label: w.name, value: w.id}))"
-              />
-            </b-form-group>
-          </b-col>
-          <b-col md="5">
-            <b-form-group :label="$t('ExpiryStatus')">
-              <v-select
-                @input="Get_Batches(1)"
-                v-model="status"
-                :reduce="label => label.value"
-                :placeholder="$t('All')"
-                :options="[
-                  {label: $t('Expired'),  value: 'expired'},
-                  {label: $t('Expiring'), value: 'expiring'},
-                  {label: $t('Ok'),       value: 'ok'},
-                ]"
-              />
-            </b-form-group>
-          </b-col>
-        </b-row>
-      </div>
-
       <template slot="table-row" slot-scope="props">
         <span v-if="props.column.field == 'status'">
           <span

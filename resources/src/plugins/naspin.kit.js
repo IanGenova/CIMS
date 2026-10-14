@@ -12,7 +12,7 @@ export default {
     Vue.component(
       "large-sidebar",
       // The `import` function returns a Promise.
-      () => import(/* webpackChunkName: "largeSidebar" */ "../containers/layouts/largeSidebar")
+      () => import(/* webpackChunkName: "largeSidebar_20261014" */ "../containers/layouts/largeSidebar")
     );
  
     Vue.component(
