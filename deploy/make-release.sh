@@ -22,7 +22,7 @@ CODE="dist/cims-code-$STAMP.tar.gz"
 tar -czf "$CODE" --anchored --no-wildcards-match-slash \
   --exclude=./vendor --exclude=./node_modules --exclude=./tests --exclude=./dist \
   --exclude=./backup-beta2 --exclude=./brand-assets --exclude=./docs --exclude=./scripts \
-  --exclude=./.claude --exclude=./.flow --exclude=./.vscode --exclude=./storage \
+  --exclude=./.git --exclude=./.claude --exclude=./.flow --exclude=./.vscode --exclude=./storage \
   --exclude=./.env --exclude='./.env.*' --exclude='./*.orig' --exclude=./.phpunit.result.cache \
   --exclude='./*.xlsx' --exclude='./*.pdf' --exclude='./*.csv' --exclude='./*.md' --exclude='./*.txt' \
   --exclude=./public/storage --exclude=./public/images/products --exclude=./public/images/avatar \
