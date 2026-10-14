@@ -1,0 +1,56 @@
+// Fixes from the responsive audit: every screen measured at 375 (phone),
+// 768 (tablet), 1366 (laptop) and 1920 (desktop). Imported last by the theme
+// so these win over the rules they correct.
+
+// ---- Tables on a phone -------------------------------------------------------
+// Narrow columns broke dates ("2026-" / "10-02"), split the peso sign from the
+// amount and stacked product names a word per line, doubling every row. The
+// tables already scroll sideways inside their card, so on a phone the cells keep
+// to one line and the table scrolls instead of crushing.
+@media (max-width: 767.98px) {
+  .vgt-table th,
+  .vgt-table td,
+  .table-responsive > .table th,
+  .table-responsive > .table td {
+    white-space: nowrap;
+  }
+}
+
+// ---- The theme switch tab ----------------------------------------------------
+// The tab sits on the right edge 100px from the top. On a phone that is where
+// a page keeps its own buttons (it covered the POS add-customer button), so it
+// moves down to the lower right and gets smaller.
+@media (max-width: 767.98px) {
+  .customizer {
+    top: auto;
+    bottom: 12px;
+    .handle {
+      padding: 6px;
+      font-size: 16px;
+      opacity: 0.85;
+    }
+  }
+}
+
+// ---- The sidebar drawer on phones and tablets ---------------------------------
+// At 1200px or less the sidebar opens over the page. Tapping the page now
+// closes it (Sidebar.vue); with only the main column open the overlay covers
+// everything right of that column, and the page dims so it reads as a drawer.
+// The column is 120px at every width: the theme's 90px phone rule never wins
+// against the more specific desktop rule (measured), so the overlay must not
+// assume 90px or it would sit over the column's last 30px.
+.layout-sidebar-large .sidebar-overlay.main-only {
+  width: calc(100% - 120px);
+}
+@media (max-width: 1200px) {
+  .layout-sidebar-large .sidebar-overlay.open {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+// ---- File pickers --------------------------------------------------------------
+// A native file input is about 266px wide whatever its column, so the logo
+// picker in System Settings ran out of its card on a tablet.
+input[type="file"] {
+  max-width: 100%;
+}

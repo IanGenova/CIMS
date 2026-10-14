@@ -1,0 +1,4 @@
+// The delivered package omitted the vendored Bootstrap SCSS that the themes
+// import. Bootstrap 4.6.2 is installed via npm, so this re-exports it at the
+// path the themes expect, leaving those files untouched.
+@import "~bootstrap/scss/functions";

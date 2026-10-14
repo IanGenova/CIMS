@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "bmewburn.vscode-intelephense-client",
+    "Vue.volar",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "onecentlin.laravel-blade",
+    "ryannaddy.laravel-artisan",
+    "mikestead.dotenv"
+  ]
+}

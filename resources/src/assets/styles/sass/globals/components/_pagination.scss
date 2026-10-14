@@ -1,0 +1,9 @@
+
+
+// The selected page number is white on the full-strength brand green: 2.54:1,
+// in both themes. Same ink as the filled buttons so they agree on screen.
+.pagination .page-item.active .page-link {
+  background-color: $btn-primary-fill;       // 5.86:1 with white
+  border-color: $btn-primary-fill;
+  color: #fff;
+}

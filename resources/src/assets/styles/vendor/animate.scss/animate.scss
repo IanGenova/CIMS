@@ -1,0 +1,37 @@
+// The delivered package omitted the vendored animate.scss library, which
+// provided both the animate.css utility classes and SASS mixins for each
+// animation.
+//
+// The classes come from animate.css 4.x (installed via npm); the .compat build
+// keeps the unprefixed names — `fadeIn`, `slideInDown` — that the templates use.
+//
+// Only one mixin is actually called anywhere in this project
+// (`slideInDown` in globals/components/_search.scss), so that one is defined
+// here rather than pulling in a second animation library. The keyframes are
+// namespaced to avoid clashing with the identically named ones in animate.css.
+
+@import "~animate.css/animate.compat.css";
+
+@keyframes cimsSlideInDown {
+    from {
+        transform: translate3d(0, -100%, 0);
+        visibility: visible;
+    }
+
+    to {
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/// Slide an element in from above.
+/// @param {Time}   $duration - how long the animation runs
+/// @param {Time}   $delay    - how long to wait before starting
+/// @param {String} $function - timing function
+/// @param {String} $fill     - animation-fill-mode
+@mixin slideInDown($duration: 1s, $delay: 0s, $function: ease, $fill: both) {
+    animation-name: cimsSlideInDown;
+    animation-duration: $duration;
+    animation-delay: $delay;
+    animation-timing-function: $function;
+    animation-fill-mode: $fill;
+}

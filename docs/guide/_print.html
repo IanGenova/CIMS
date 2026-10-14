@@ -1,0 +1,1726 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>CIMS for a hardware store</title><style>
+@page { size: A4; margin: 22mm 38mm; }
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.5;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+h1 { font-size: 18pt; font-weight: 600; break-before: page; break-after: avoid; margin: 0 0 .5em; }
+h1:first-of-type { break-before: auto; }
+h2 { font-size: 13pt; font-weight: 600; break-after: avoid; margin: 1.4em 0 .4em; }
+h3 { font-size: 11.5pt; font-weight: 600; break-after: avoid; margin: 1.1em 0 .3em; }
+
+p, li { font-size: 10.5pt; }
+ol, ul { padding-left: 1.4em; }
+li { margin-bottom: .45em; break-inside: avoid; }
+li img { margin-left: 0; }
+
+table { font-size: 9.5pt; table-layout: fixed; width: 100%; border-collapse: collapse; margin: .7em 0; }
+thead { display: table-header-group; }
+th, td { text-align: left; padding: .34em .5em; border-bottom: .5pt solid #ccc; vertical-align: top; }
+th { font-weight: 600; border-bottom: 1pt solid #888; }
+td { overflow-wrap: anywhere; }
+
+code { font-size: 9.5pt; font-family: Consolas, "Courier New", monospace; }
+
+/* One left edge: a screenshot narrower than the measure sits flush left. */
+img { border: 1px solid #dcdcdc; display: block; margin: .6em 0; }
+img.shot-full   { width: 134mm; }
+img.shot-detail { width: 80mm; }
+
+/* Wraps a sentence to its screenshot. Without it the lead-in sits at the foot
+   of one page and the picture it introduces opens the next. */
+figure { break-inside: avoid; margin: 0; }
+a { color: inherit; text-decoration: none; }
+hr { border: none; border-top: .5pt solid #ccc; margin: 1.4em 0; }
+blockquote { margin: 0 0 0 1em; padding-left: .8em; border-left: 2pt solid #ddd; }
+</style></head><body><h1>CIMS for a hardware store</h1>
+<p>This guide covers the work a hardware store does in CIMS: selling at the counter, keeping the
+stockroom straight, and knowing where the shop stands.</p>
+<p>It is written for whoever is doing the job, not for whoever built the system. Every screen in
+it was photographed from a running shop, and every message in the troubleshooting page was
+produced by actually causing the problem.</p>
+<h2>Start here</h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="01-getting-started.md">Getting started</a></td>
+<td>Signing in, finding your way round, and the one thing to set up first</td>
+</tr>
+</tbody></table>
+<h2>At the counter</h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="02-open-the-till.md">Open the till</a></td>
+<td>Starting the day: the drawer, the float, and why selling needs one</td>
+</tr>
+<tr>
+<td><a href="03-ring-up-a-sale.md">Ring up a sale</a></td>
+<td>Finding products, building a basket, taking cash or GCash</td>
+</tr>
+<tr>
+<td><a href="04-hold-a-basket.md">Hold a basket</a></td>
+<td>Parking a customer&#39;s order and picking it up again</td>
+</tr>
+<tr>
+<td><a href="05-cancel-a-sale.md">Cancel a sale</a></td>
+<td>Voiding something rung up by mistake, and what it puts back</td>
+</tr>
+<tr>
+<td><a href="06-close-the-till.md">Close the till</a></td>
+<td>Counting the drawer, the Z-reading, and what a shortfall means</td>
+</tr>
+</tbody></table>
+<h2>In the stockroom</h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="07-order-stock.md">Order stock</a></td>
+<td>Raising a purchase order on a supplier</td>
+</tr>
+<tr>
+<td><a href="08-approve-an-order.md">Approve an order</a></td>
+<td>The sign-off that has to happen before goods can be booked in</td>
+</tr>
+<tr>
+<td><a href="09-book-in-a-delivery.md">Book in a delivery</a></td>
+<td>Receiving goods, including a short or damaged delivery</td>
+</tr>
+<tr>
+<td><a href="10-close-a-short-order.md">Close a short order</a></td>
+<td>Stopping the wait for a balance that is never coming</td>
+</tr>
+<tr>
+<td><a href="11-move-stock.md">Move stock to the branch</a></td>
+<td>Transferring goods between Main and Branch</td>
+</tr>
+<tr>
+<td><a href="12-write-off-damage.md">Write off damage</a></td>
+<td>Taking spoiled or stolen stock off the shelf</td>
+</tr>
+<tr>
+<td><a href="13-count-the-shelf.md">Count the shelf</a></td>
+<td>A stock count, and posting what you actually found</td>
+</tr>
+</tbody></table>
+<h2>Running the shop</h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="14-what-to-reorder.md">What to reorder</a></td>
+<td>What has run out and roughly what it costs to restock</td>
+</tr>
+<tr>
+<td><a href="15-what-stock-is-worth.md">What the stock is worth</a></td>
+<td>Value on hand, by branch</td>
+</tr>
+<tr>
+<td><a href="16-the-days-takings.md">The day&#39;s takings</a></td>
+<td>Sales, drawer counts and shortfalls</td>
+</tr>
+<tr>
+<td><a href="17-add-a-product.md">Add a product</a></td>
+<td>Putting a new line in the catalogue, priced correctly for VAT</td>
+</tr>
+<tr>
+<td><a href="18-add-a-staff-account.md">Add a staff account</a></td>
+<td>Giving someone their own sign-in</td>
+</tr>
+</tbody></table>
+<h2>When you get stuck</h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="when-something-goes-wrong.md">When something goes wrong</a></td>
+<td>Every message you can see, what it means, what to do</td>
+</tr>
+<tr>
+<td><a href="glossary.md">Glossary</a></td>
+<td>The few words on screen that are not obvious</td>
+</tr>
+</tbody></table>
+<h2>What this guide does not cover</h2>
+<p><strong>Separate logins for cashiers and stockmen.</strong> The shop currently has one account, with the
+<strong>Owner</strong> role. CIMS can restrict what each person sees, but those roles have not been set up,
+so everyone signs in as the owner and can reach everything. <a href="18-add-a-staff-account.md">Add a staff
+account</a> explains how to create accounts; deciding who should be
+restricted to what is a decision for the shop.</p>
+<p><strong>Printing to a receipt printer.</strong> The receipt appears on screen and the <strong>Print</strong> button opens
+your browser&#39;s print window. No thermal printer was attached when this guide was written, so
+the printed slip is not shown here.</p>
+<p><strong>Selling on Shopee or Lazada.</strong> The marketplace screen exists and is described nowhere in this
+guide, because connecting it needs seller accounts the shop does not have yet.</p>
+<h1>Getting started</h1>
+<p>Everything in CIMS happens after you sign in. This page covers signing in, finding your way
+around, and the one thing to check before anyone sells anything.</p>
+<h2>Signing in</h2>
+<ol>
+<li><figure><p>Open your browser and go to the shop&#39;s CIMS address.
+On the counter PC this is usually already saved as the home page.</p><img class="shot-detail" src="images/signin-desktop.png" alt="The CIMS sign-in screen, with Email Address and Password boxes above a green Sign In button"></figure>
+</li>
+<li><p>Type your email in <strong>Email Address</strong> and your password in <strong>Password</strong>.</p>
+</li>
+<li><p>Press <strong>Sign In</strong>.
+The <strong>Dashboard</strong> opens. If it does not, see
+<a href="when-something-goes-wrong.md">When something goes wrong</a>.</p>
+</li>
+</ol>
+<figure><p>The same two boxes, stacked, are what a phone shows:</p><img class="shot-detail" src="images/signin-mobile.png" alt="The CIMS sign-in screen on a phone, with Email Address and Password stacked above the green Sign In button and a Forgot Password link below"></figure>
+
+<p>There is a <strong>Forgot Password ?</strong> link under the button. It emails you a reset link — but the
+shop&#39;s email settings have never been filled in, so no mail can go out. Press it and, after as
+much as half a minute, the screen turns red: <strong>The reset email could not be sent. Check the
+SMTP settings under Settings, then System Settings.</strong> Nothing was sent and nothing is coming.</p>
+<p>Until those settings are filled in, ask whoever looks after the shop&#39;s accounts to set you a
+new password instead. See <a href="18-add-a-staff-account.md">Add a staff account</a>.</p>
+<p>Nobody can see the shop&#39;s figures without signing in, so never leave the counter PC signed in
+and unattended.</p>
+<h2>Finding your way around</h2>
+<figure><p>The dark strip down the left is the menu. The entries you will use most are near the top.</p><img class="shot-full" src="images/dashboard-desktop.png" alt="The CIMS Dashboard showing Revenue, Purchases, Sales Return and Profit cards above a weekly sales chart and a Stock Alert table"></figure>
+
+<table>
+<thead>
+<tr>
+<th>Menu entry</th>
+<th>What it is for</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Dashboard</strong></td>
+<td>The day at a glance, plus a <strong>Stock Alert</strong> list of what is running out</td>
+</tr>
+<tr>
+<td><strong>Products</strong></td>
+<td>The catalogue: every item the shop sells</td>
+</tr>
+<tr>
+<td><strong>Adjustment</strong></td>
+<td>Taking stock off the shelf for damage or loss</td>
+</tr>
+<tr>
+<td><strong>Transfer</strong></td>
+<td>Moving stock between Main Warehouse and Branch Warehouse</td>
+</tr>
+<tr>
+<td><strong>Purchases</strong></td>
+<td>Ordering from suppliers</td>
+</tr>
+<tr>
+<td><strong>POS</strong></td>
+<td>The counter: ringing up sales</td>
+</tr>
+<tr>
+<td><strong>Sales</strong></td>
+<td>Every invoice the shop has issued</td>
+</tr>
+</tbody></table>
+<p>Lower down the menu are <strong>Quotations</strong>, <strong>People</strong> (customers, suppliers and staff),
+<strong>Reports</strong> and <strong>Settings</strong>.</p>
+<figure><p>On a phone the menu is hidden. Press the three lines at the top left to open it.</p><img class="shot-detail" src="images/dashboard-mobile.png" alt="The Dashboard on a phone, with the menu collapsed behind a button at the top left"></figure>
+
+<h2>Before anyone sells: check the warehouse</h2>
+<p>The shop has two places stock can sit: <strong>Main Warehouse</strong> and <strong>Branch Warehouse</strong>. Almost every
+screen asks which one you mean, and the answer changes what you see.</p>
+<p>This matters more than it sounds. If the counter is set to the wrong warehouse, it will sell
+stock the shop does not have in front of it, and the branch will be short without anyone
+noticing until a count.</p>
+<p>At the counter, the warehouse is the second box down on the <strong>POS</strong> screen. Set it once at the
+start of the day.</p>
+<h2>A note about who can see what</h2>
+<p>Right now the shop has a single sign-in with the <strong>Owner</strong> role, which can reach every screen,
+including the money and the settings.</p>
+<p>If you want the counter staff to see only the till, that is possible — CIMS controls it per
+person — but the accounts have to be created first. See
+<a href="18-add-a-staff-account.md">Add a staff account</a>.</p>
+<h2>Where to go next</h2>
+<p>If you are on the counter, read <a href="02-open-the-till.md">Open the till</a> next, then
+<a href="03-ring-up-a-sale.md">Ring up a sale</a>.</p>
+<p>If you are in the stockroom, start at <a href="09-book-in-a-delivery.md">Book in a delivery</a>.</p>
+<p>If you run the shop, <a href="14-what-to-reorder.md">What to reorder</a> and
+<a href="16-the-days-takings.md">The day&#39;s takings</a> are the two you will open most.</p>
+<h1>Open the till</h1>
+<p>At the start of the day you tell CIMS how much cash is in the drawer. From then on it keeps
+count, so that at closing time it can tell you what should be there. This takes about a minute.</p>
+<p><strong>Before you start:</strong> count the float — the cash you are starting the drawer with.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>POS</strong>.
+The counter screen opens. At the top left it says <strong>Till closed</strong>.</p><img class="shot-full" src="images/pos-empty-desktop.png" alt="The POS screen before a warehouse is chosen, showing a Till closed label at the top left and an empty product area"></figure>
+</li>
+<li><figure><p>In the second box down, choose the warehouse you are selling from — normally
+<strong>Main Warehouse</strong>.
+The products appear on the right, each showing its code, price and how much is in stock.
+This takes a few seconds.</p><img class="shot-full" src="images/pos-grid-desktop.png" alt="The POS screen with Main Warehouse chosen and the product grid filled with hardware items, each showing a code, a price and a stock figure"></figure>
+</li>
+<li><p>Press <strong>Till closed</strong> at the top left.
+A <strong>Till session</strong> box opens saying you have no drawer open at this warehouse.</p>
+</li>
+<li><p>Press <strong>Open till</strong>.</p>
+</li>
+<li><p>Leave <strong>Terminal</strong> as <strong>MAIN</strong> unless the shop has more than one counter.
+If it has two, give each one its own name so the drawers can be told apart.</p>
+</li>
+<li><p>Type the cash you counted into <strong>Opening float</strong>.</p>
+</li>
+<li><p>Press <strong>Open till</strong>.
+The label at the top left changes from <strong>Till closed</strong> to the amount in the drawer.</p>
+</li>
+</ol>
+<p>Once the drawer is open you can sell. See <a href="03-ring-up-a-sale.md">Ring up a sale</a>.</p>
+<h2>What happens next</h2>
+<figure><p>CIMS now adds every cash sale to the drawer and takes off every cash refund. You can check the
+running figure at any time by pressing the amount at the top left.</p><img class="shot-full" src="images/pos-till-panel-desktop.png" alt="The Till session box showing Terminal MAIN, the time it was opened, the number of sales, and a breakdown of Opening float, Cash sales, Cash in, Cash out and Expected cash"></figure>
+
+<p><strong>Cash in</strong> and <strong>Cash out</strong> are for money that moves without a sale — paying a delivery driver
+out of the drawer, or adding change from the safe. Use them, or the drawer will not balance at
+closing time.</p>
+<p><strong>Print X-reading</strong> shows where the shift stands without closing it. It is safe to press at any
+time and changes nothing.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Choose Warehouse</strong></td>
+<td>you pressed before choosing a warehouse</td>
+<td>choose the warehouse in the second box, then try again</td>
+</tr>
+<tr>
+<td><strong>This drawer already has a session open. Close it before opening another.</strong></td>
+<td>this terminal already has an open drawer</td>
+<td>press the amount at the top left to see it; close it before opening a new one</td>
+</tr>
+<tr>
+<td><strong>Open the till before selling. No drawer is open for you at this warehouse.</strong></td>
+<td>you tried to sell with no drawer open</td>
+<td>open the till as above</td>
+</tr>
+</tbody></table>
+<p>One drawer belongs to one person at one terminal. If a colleague opened it, they have to close
+it — their name is on the shift.</p>
+<h1>Ring up a sale</h1>
+<p>A customer brings goods to the counter. You find each item, take the money, and hand them a
+receipt. Most sales take under a minute.</p>
+<p><strong>Before you start:</strong> the till has to be open. See <a href="02-open-the-till.md">Open the till</a>.</p>
+<h2>Steps</h2>
+<ol>
+<li><p>From the menu, choose <strong>POS</strong>, and check the warehouse box reads the one you are selling
+from.</p>
+</li>
+<li><p>Find each item and press it to add it to the basket.
+You can scan the barcode, type the code or name into <strong>Scan/Search Product by Code Name</strong>,
+or press the item in the grid. <strong>List of Category</strong> and <strong>Brand List</strong> narrow the grid.</p>
+</li>
+<li><figure><p>Set the quantity with <strong>−</strong> and <strong>+</strong>, or press the quantity box and type it.
+The line total and <strong>Grand Total</strong> update as you go.</p><img class="shot-full" src="images/pos-basket-desktop.png" alt="The POS screen with two bags of Portland Cement in the basket, the line showing a unit price and subtotal, and a Grand Total below"></figure>
+
+<p>The price shown already includes VAT. What the customer pays is the price on the shelf.</p>
+</li>
+<li><p>If the customer is a senior citizen or a person with disability, choose the right entry in
+<strong>SC / PWD Discount</strong> and enter their ID when asked.
+The discount and the VAT exemption are worked out for you.</p>
+</li>
+<li><p>Press <strong>Pay Now</strong>.
+The <strong>Create Payment</strong> box opens with the amount already filled in.</p>
+</li>
+<li><p>Type what the customer handed you into <strong>Received Amount</strong>.
+<strong>Change</strong> shows what to give back.</p>
+</li>
+<li><p>Choose how they paid in <strong>Payment choice</strong> — <strong>Cash</strong>, <strong>GCash</strong> and the others the shop
+accepts.</p>
+</li>
+<li><p>If they are paying two ways — some cash, the rest by GCash — turn on <strong>Split the payment</strong>
+and enter each amount. The parts must add up to the total.</p>
+</li>
+<li><p>Press <strong>Submit</strong>.
+The receipt appears on screen with the invoice number at the bottom, and the drawer figure
+at the top left goes up by the cash taken.</p>
+</li>
+<li><p>Press <strong>Print</strong> to print the receipt, or close the box to carry on.</p>
+</li>
+</ol>
+<h2>On a phone</h2>
+<figure><p>The counter screen is about one and a half screens tall on a phone, and everything is in one
+column instead of two. The order going down is: the customer, the warehouse, the basket, the
+totals, then <strong>Hold</strong>, <strong>Held baskets</strong>, <strong>Reset</strong> and <strong>Pay Now</strong>.</p><img class="shot-detail" src="images/pos-grid-mobile.png" alt="The counter screen on a phone, one column deep, showing the customer and warehouse boxes above an empty basket and the Grand Total"></figure>
+
+<p><strong>The products are below Pay Now, not above it.</strong> Scroll past the buttons to reach the search
+box and the product grid. This catches everyone the first time — the screen looks finished at
+<strong>Pay Now</strong>, so it does not look as though there is anything further down.</p>
+<p>The drawer figure at the top shows <strong>Till closed</strong> in red when no drawer is open, and the float
+in green when one is.</p>
+<h2>What happens next</h2>
+<p>The stock comes off the shelf straight away, so the next customer sees the reduced figure.</p>
+<p>The invoice is on the <strong>Sales</strong> list, and the sale is counted in the drawer for whoever closes
+the till tonight.</p>
+<p>The receipt shows <strong>VATable Sales</strong>, <strong>12% VAT</strong>, <strong>VAT-Exempt Sales</strong> and <strong>Zero-Rated Sales</strong>
+separately. That split is what the BIR expects to see, and it is worked out from each product&#39;s
+own setting rather than typed in.</p>
+<h2>If it does not work</h2>
+<img class="shot-detail" src="images/err-pos-no-till-desktop.png" alt="A close-up of the red Failed message reading Choose Warehouse, as it appears at the top right of the counter screen">
+
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Choose Warehouse</strong></td>
+<td>no warehouse is chosen</td>
+<td>choose one in the second box down</td>
+</tr>
+<tr>
+<td><strong>Open the till before selling. No drawer is open for you at this warehouse.</strong></td>
+<td>no drawer is open</td>
+<td>see <a href="02-open-the-till.md">Open the till</a></td>
+</tr>
+<tr>
+<td><strong>Insufficient stock for the selected product and warehouse.</strong></td>
+<td>this warehouse does not hold that many</td>
+<td>check the stock figure on the item, or sell from the other warehouse</td>
+</tr>
+<tr>
+<td><strong>The amount paid cannot be more than the order total of {amount}.</strong></td>
+<td>the tendered amount is higher than the sale</td>
+<td>enter what the customer owes; put the cash they handed over in <strong>Received Amount</strong> instead</td>
+</tr>
+<tr>
+<td><strong>This sale would take {customer} to {amount}, over their credit limit of {limit}.</strong></td>
+<td>a credit customer is over their limit</td>
+<td>take a payment on their account first, or raise the limit on their customer record</td>
+</tr>
+</tbody></table>
+<h1>Hold a basket</h1>
+<p>A customer has gone to fetch their truck, or wants to add more before paying. You park their
+basket, serve the next person, and pick it up again when they come back.</p>
+<p><strong>Before you start:</strong> the items must already be in the basket.</p>
+<h2>Steps</h2>
+<h3>Parking a basket</h3>
+<ol>
+<li><p>With the basket on screen, press <strong>Hold</strong>.</p>
+</li>
+<li><p>Give it a name the counter will recognise — the customer&#39;s name, or what they are waiting
+for. &quot;Mr Cruz — waiting on truck&quot; is more use than &quot;Hold 1&quot;.</p>
+</li>
+<li><p>Press to confirm.
+The basket clears and you can serve the next customer.</p>
+</li>
+</ol>
+<h3>Picking it up again</h3>
+<ol>
+<li><p>Press <strong>Held baskets</strong>.
+Every parked basket is listed with its name and total.</p>
+</li>
+<li><p>Find the one you want and press to recall it.
+The items come back onto the counter screen exactly as they were.</p>
+</li>
+<li><p>Carry on as normal — see <a href="03-ring-up-a-sale.md">Ring up a sale</a> from step 5.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p><strong>Holding a basket does not reserve the stock.</strong> The items stay on the shelf and anyone can
+sell them. If a held basket sits too long and the stock goes, you will be told when you try to
+take payment.</p>
+<p>A basket can only be recalled once. If two counters try to pick up the same one, the second is
+told it has already been taken — which is what stops the same order being rung up twice.</p>
+<p>Held baskets belong to the warehouse they were created at. A basket held at Main does not
+appear at Branch.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This field is required</strong></td>
+<td>the basket has no name</td>
+<td>type a name and try again</td>
+</tr>
+<tr>
+<td>nothing listed under <strong>Held baskets</strong></td>
+<td>nothing is held at this warehouse</td>
+<td>check the warehouse box is the one you held it at</td>
+</tr>
+<tr>
+<td><strong>Insufficient stock for the selected product and warehouse.</strong> after recalling</td>
+<td>the stock sold while the basket was parked</td>
+<td>reduce the quantity, or sell from the other warehouse</td>
+</tr>
+</tbody></table>
+<h1>Cancel a sale</h1>
+<p>Something was rung up wrong and the customer is still at the counter. Voiding the sale puts the
+stock back, takes the money off the drawer, and leaves a record of what happened.</p>
+<p><strong>Before you start:</strong> voiding is for a mistake caught the same day, on the same shift. If the
+customer is bringing goods back later, that is a sale return instead — ask whoever runs the
+shop.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Sales</strong>.
+Every invoice is listed, newest first.</p><img class="shot-full" src="images/sales-list-desktop.png" alt="The Sales list showing invoices with their reference, date, customer, total and status"></figure>
+</li>
+<li><p>Find the invoice. The reference is on the receipt, and starts <strong>SL_</strong>.</p>
+</li>
+<li><p>Open it and choose to void it.</p>
+</li>
+<li><p>Type why. &quot;Wrong item rung up&quot; or &quot;Customer changed their mind&quot; is enough.
+The reason is kept with the invoice, so write something a person reading it next month will
+understand.</p>
+</li>
+<li><p>Confirm.
+The invoice stays on the list, now marked <strong>voided</strong>.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p>Three things happen together:</p>
+<ul>
+<li>The stock goes back on the shelf.</li>
+<li>The money comes off the drawer, so your closing count still balances.</li>
+<li>The books are reversed, so the sale no longer counts as income.</li>
+</ul>
+<p><strong>The invoice is not deleted and its number is not reused.</strong> That is deliberate: the BIR expects
+an unbroken run of invoice numbers, and a missing number looks worse than a voided one. The
+voided invoice still appears in the day&#39;s range on the Z-reading.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>That sale has already been voided.</strong></td>
+<td>somebody voided it already</td>
+<td>check the status on the list; no further action is needed</td>
+</tr>
+<tr>
+<td><strong>That shift has already been counted down. Use a sale return instead.</strong></td>
+<td>the till was closed after the sale</td>
+<td>the drawer is settled, so this has to go through as a return</td>
+</tr>
+<tr>
+<td><strong>That sale was not made today. Use a sale return instead.</strong></td>
+<td>the sale is from an earlier day</td>
+<td>same — handle it as a return, not a void</td>
+</tr>
+<tr>
+<td><strong>Void reason is required</strong></td>
+<td>you left the reason blank</td>
+<td>type why it is being voided</td>
+</tr>
+</tbody></table>
+<p>If you cannot void it, that is usually correct rather than a fault: once the drawer is counted
+and closed, changing what was in it would make the count wrong after the fact.</p>
+<h1>Close the till</h1>
+<p>At the end of the shift you count the drawer and tell CIMS what you found. It compares that
+with what it expected and records the difference. This takes a couple of minutes.</p>
+<p><strong>Before you start:</strong> count the cash in the drawer, including the float you started with.</p>
+<h2>Steps</h2>
+<ol>
+<li><p>From the menu, choose <strong>POS</strong>, and check the warehouse box reads the one you have been
+selling from.</p>
+</li>
+<li><figure><p>Press the amount at the top left.
+The <strong>Till session</strong> box opens showing where the shift stands.</p><img class="shot-full" src="images/pos-till-panel-desktop.png" alt="The Till session box showing Terminal, the time opened, the number of sales, and Opening float, Cash sales, Cash in, Cash out and Expected cash"></figure>
+</li>
+<li><p>Read <strong>Expected cash</strong>. That is what should be in the drawer: the float, plus cash sales,
+plus anything added with <strong>Cash in</strong>, less anything taken with <strong>Cash out</strong>, less cash
+refunds.</p>
+</li>
+<li><p>Press <strong>Close till</strong>.</p>
+</li>
+<li><p>Type what you actually counted into <strong>Counted cash</strong>.
+The box works out the difference as you type and shows it beside <strong>Expected cash</strong>.</p>
+</li>
+<li><p>If there is a difference, say why in <strong>Notes</strong>. &quot;₱50 short, no obvious cause&quot; is a perfectly
+good note.</p>
+</li>
+<li><p>Press <strong>Close till</strong>.
+The label at the top left goes back to <strong>Till closed</strong>.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p>The shift is now a <strong>Z-reading</strong> — the end-of-day record. It holds the opening float, the cash
+counted, the difference, the number of sales, the first and last invoice numbers, the VAT split
+and any voids.</p>
+<p>You cannot close the same shift twice, and you cannot reopen it. If you counted wrong, tell
+whoever runs the shop rather than trying to correct it yourself — the Z-reading is the record
+the books are built on.</p>
+<p>To sell again, open a new drawer. See <a href="02-open-the-till.md">Open the till</a>.</p>
+<p>Past shifts are under <strong>Reports</strong> → <strong>Till Sessions</strong>. See
+<a href="16-the-days-takings.md">The day&#39;s takings</a>.</p>
+<h2>About shortfalls</h2>
+<p>A difference is recorded, not hidden. Short means less cash than expected; over means more.</p>
+<p>Both are worth looking at. The usual causes are change given wrong, a cash payment rung up as
+GCash, or money taken from the drawer without using <strong>Cash out</strong>.</p>
+<p>A drawer that balances exactly every single day is worth a second look, not praise — it usually
+means somebody is typing the expected figure into <strong>Counted cash</strong> instead of counting.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This field is required</strong></td>
+<td><strong>Counted cash</strong> is blank</td>
+<td>type what you counted, even if it is 0</td>
+</tr>
+<tr>
+<td>the figure will not accept a negative</td>
+<td>a counted drawer cannot be less than nothing</td>
+<td>count again; if the drawer is genuinely empty, enter 0</td>
+</tr>
+<tr>
+<td><strong>That shift has already been counted down.</strong></td>
+<td>the drawer is already closed</td>
+<td>check <strong>Reports</strong> → <strong>Till Sessions</strong> for the Z-reading</td>
+</tr>
+</tbody></table>
+<h1>Order stock</h1>
+<p>You raise a purchase order so the supplier knows what to send and the shop has a record of what
+is coming. Ordering does not change your stock — nothing moves until the delivery arrives.</p>
+<p><strong>Before you start:</strong> the supplier must be on file. <strong>People</strong> → <strong>Suppliers</strong> lists them, and
+has a button to add one.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Purchases</strong>, then <strong>Create Purchase</strong>.</p><img class="shot-full" src="images/purchases-create-desktop.png" alt="The Create Purchase screen with Date, Supplier and Warehouse boxes above an empty product table"></figure>
+</li>
+<li><p>Set the <strong>Date</strong>, choose the <strong>Supplier</strong>, and choose the <strong>Warehouse</strong> the goods will be
+delivered to.</p>
+</li>
+<li><p>Find each product and add it, the same way as at the counter — scan, type the code or name,
+or pick it from the list.</p>
+</li>
+<li><p>For each line, enter the <strong>Quantity</strong> and the <strong>Unit Cost</strong> the supplier is charging you.
+This is the cost price, not the shelf price.</p>
+</li>
+<li><p>Leave the status as the one that means not yet received.
+Marking an order received before the goods arrive puts stock on the shelf that is still on
+the lorry.</p>
+</li>
+<li><p>Press <strong>Submit</strong>.
+The order appears on the <strong>Purchases</strong> list with a reference starting <strong>PR_</strong>.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p><strong>Nothing reaches the shelf yet.</strong> That is correct — an order is not a delivery.</p>
+<p>The order now needs approving before anything can be booked in against it. See
+<a href="08-approve-an-order.md">Approve an order</a>.</p>
+<p>When the goods arrive, see <a href="09-book-in-a-delivery.md">Book in a delivery</a>.</p>
+<h2>About the cost you enter</h2>
+<p>The <strong>Unit Cost</strong> matters more than it looks. When the goods are booked in, CIMS works out a new
+average cost for that product across everything you hold — what you paid before and what you
+have just paid, weighted by quantity.</p>
+<p>That average is what every margin and every stock valuation is based on afterwards. Entering the
+shelf price here instead of what the supplier charged will quietly make the shop look
+unprofitable.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This field is required</strong></td>
+<td>supplier, warehouse or a quantity is blank</td>
+<td>fill the highlighted boxes</td>
+</tr>
+<tr>
+<td>a product cannot be found</td>
+<td>it is not in the catalogue, or has no record at that warehouse</td>
+<td>see <a href="17-add-a-product.md">Add a product</a></td>
+</tr>
+<tr>
+<td>the total looks wrong</td>
+<td>CIMS recalculates the total itself from the quantities and costs</td>
+<td>check each line&#39;s quantity and unit cost; the total follows them</td>
+</tr>
+</tbody></table>
+<h1>Approve an order</h1>
+<p>A purchase order has to be signed off before any goods can be booked in against it. This is the
+shop&#39;s check on what is being bought and at what price.</p>
+<p><strong>Before you start:</strong> the order must already be raised. See <a href="07-order-stock.md">Order stock</a>.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Purchases</strong>, then <strong>Approvals</strong>.
+Every order waiting for sign-off is listed.</p><img class="shot-full" src="images/purchases-approve-desktop.png" alt="The purchase approvals screen listing orders awaiting sign-off with their reference, supplier and total"></figure>
+</li>
+<li><p>Check the order: the supplier, the quantities, and the unit costs.
+This is the moment to catch a price that has gone up without anyone agreeing it.</p>
+</li>
+<li><p>Approve it, or reject it with a reason.</p>
+</li>
+<li><p>The order moves off the approvals list.
+CIMS records who approved it and when.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p>The stockroom can now book in deliveries against this order. See
+<a href="09-book-in-a-delivery.md">Book in a delivery</a>.</p>
+<p>Until an order is approved, trying to receive against it is refused outright and <strong>no stock
+moves</strong>. That is the control working, not a fault.</p>
+<p>A rejected order cannot be received against at all.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This purchase is awaiting approval and cannot be received yet.</strong></td>
+<td>somebody tried to book in a delivery first</td>
+<td>approve the order here, then book the delivery in</td>
+</tr>
+<tr>
+<td><strong>This purchase was rejected and cannot be received.</strong></td>
+<td>the order was turned down</td>
+<td>raise a new order if the goods are genuinely wanted</td>
+</tr>
+<tr>
+<td><strong>This purchase is not awaiting approval (it is {status}).</strong></td>
+<td>it has already been approved or rejected</td>
+<td>no action needed; check the status on the <strong>Purchases</strong> list</td>
+</tr>
+<tr>
+<td>the approvals list is empty</td>
+<td>nothing is waiting</td>
+<td>that is normal — orders only appear here between being raised and being signed off</td>
+</tr>
+</tbody></table>
+<h1>Book in a delivery</h1>
+<p>The lorry arrives. You check what came off it against the order, book in what is good, and
+reject what is damaged. Only what you book in reaches the shelf.</p>
+<p><strong>Before you start:</strong> the order must be raised and approved. See
+<a href="08-approve-an-order.md">Approve an order</a>.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Goods Receipts</strong>, then <strong>Create Goods Receipt</strong>.</p><img class="shot-full" src="images/receipts-create-desktop.png" alt="The Create Goods Receipt screen with a purchase order chosen and its outstanding lines listed for receiving"></figure>
+</li>
+<li><p>Choose the order you are receiving against. Only approved orders with something still
+outstanding appear.
+The lines fill in with what is still due.</p>
+</li>
+<li><p>Set the <strong>Date</strong> and, if the driver gave you one, type the delivery note number into
+<strong>Delivery note</strong>.</p>
+</li>
+<li><p>For each line, enter how many arrived in good condition.</p>
+</li>
+<li><p>If anything is damaged, put that number in the rejected column rather than reducing the
+received figure.
+<strong>Rejected goods do not reach the shelf.</strong> The difference is the point: the order still shows
+what was ordered, the receipt shows what was accepted, and the gap is visible.</p>
+</li>
+<li><p>Add a note about anything worth remembering. &quot;Five bags torn, returned on the truck&quot; takes
+five seconds and settles an argument a month later.</p>
+</li>
+<li><p>Press <strong>Submit</strong>.
+The receipt gets a reference starting <strong>GRN_</strong>.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p>The accepted goods are on the shelf immediately, and the cost is recalculated.</p>
+<p>If you bought at a different price from last time, the average cost of that product moves — see
+<a href="07-order-stock.md">Order stock</a> for why that matters.</p>
+<p>The order stays open until everything ordered has been received. A part delivery is normal:
+book in what came, and book in the rest when it arrives.</p>
+<figure><p>If the rest is never coming — the supplier wrote it off, or discontinued the line — see
+<a href="10-close-a-short-order.md">Close a short order</a>. Leaving it open means the shop keeps counting
+stock that will never arrive.</p><img class="shot-full" src="images/receipts-list-desktop.png" alt="The Goods Receipts list showing each receipt with its reference, date and the purchase it was booked against"></figure>
+
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This purchase is awaiting approval and cannot be received yet.</strong></td>
+<td>the order has not been signed off</td>
+<td>see <a href="08-approve-an-order.md">Approve an order</a></td>
+</tr>
+<tr>
+<td><strong>This purchase was rejected and cannot be received.</strong></td>
+<td>the order was turned down</td>
+<td>raise a new order</td>
+</tr>
+<tr>
+<td><strong>This order was closed short on {date} ({reason}). Raise a new order for anything that still arrives.</strong></td>
+<td>somebody closed the order short and the goods turned up anyway</td>
+<td>raise a new order for what arrived; do not reopen the closed one</td>
+</tr>
+<tr>
+<td>the order is not in the list</td>
+<td>it is fully received, rejected, or closed short</td>
+<td>check its status on the <strong>Purchases</strong> list</td>
+</tr>
+<tr>
+<td>you booked in too many</td>
+<td>the receipt cannot exceed what was ordered</td>
+<td>book in what actually arrived; if the supplier sent extra, raise a second order for it</td>
+</tr>
+</tbody></table>
+<h1>Close a short order</h1>
+<p>Part of an order is never going to arrive. The supplier wrote off the damaged bags, or
+discontinued the line, or simply stopped answering. Closing the order short stops the shop
+waiting for goods that are not coming.</p>
+<p><strong>Before you start:</strong> be sure the balance really is not coming. If it is merely late, leave the
+order open — a late delivery can still be booked in against an open order, but not against a
+closed one.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Purchases</strong>.</p><img class="shot-full" src="images/purchases-list-desktop.png" alt="The Purchases list showing orders with their reference, supplier, total, status and payment status"></figure>
+</li>
+<li><p>Find the order. It will still read as not fully received.</p>
+</li>
+<li><p>Close it short.</p>
+</li>
+<li><p>Type why. This is required, and it is the whole point of the record: &quot;Five bags written off
+by the supplier, no reship&quot; tells the next person what happened. &quot;Closed&quot; tells them nothing.</p>
+</li>
+<li><p>Confirm.
+The order drops off the list of deliveries still expected.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p><strong>No stock moves and nothing is rewritten.</strong> If 195 of 200 bags arrived, the order still says
+195 of 200 arrived, because that is what happened. What changes is that somebody has recorded,
+with a reason and their name, that the remaining five are not coming.</p>
+<p>The order no longer appears when you go to book in a delivery, and it no longer counts toward
+goods on their way.</p>
+<p>Once closed:</p>
+<ul>
+<li>It cannot be closed again.</li>
+<li>Nothing more can be received against it.</li>
+<li>Deleting an earlier receipt will not quietly reopen it.</li>
+</ul>
+<p>If the goods do turn up afterwards, raise a new order for them. That keeps the record honest:
+the first order was closed because the stock was not coming, and the second exists because it
+did.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This field is required</strong></td>
+<td>you did not say why</td>
+<td>type a reason; an order that vanished without one is worse than one left open</td>
+</tr>
+<tr>
+<td><strong>Everything on this order has been received, so there is nothing to close.</strong></td>
+<td>the order is already complete</td>
+<td>no action needed</td>
+</tr>
+<tr>
+<td><strong>This order was already closed short on {date}.</strong></td>
+<td>somebody closed it already</td>
+<td>check the <strong>Purchases</strong> list for its status and the reason recorded</td>
+</tr>
+</tbody></table>
+<h1>Move stock to the branch</h1>
+<p>The branch has run out of cement and Main has plenty. A transfer takes stock off one warehouse
+and puts it on the other.</p>
+<p><strong>Before you start:</strong> check the sending warehouse actually holds what you are moving. The
+quantity shows beside each product as you add it.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Transfer</strong>, then <strong>Create Transfer</strong>.</p><img class="shot-full" src="images/transfer-create-desktop.png" alt="The Create Transfer screen with Date, From Warehouse and To Warehouse boxes above an empty product table"></figure>
+</li>
+<li><p>Set the <strong>Date</strong>.</p>
+</li>
+<li><p>Choose <strong>From Warehouse</strong> — where the stock is now.</p>
+</li>
+<li><p>Choose <strong>To Warehouse</strong> — where it is going.
+These must be different.</p>
+</li>
+<li><p>Find each product and add it. The stock figure shown is for the <strong>sending</strong> warehouse.</p>
+</li>
+<li><p>Enter the quantity for each line.</p>
+</li>
+<li><p>Set the status to the one meaning the goods have actually moved, not merely been planned.</p>
+</li>
+<li><p>Press <strong>Submit</strong>.
+The transfer appears on the list with a reference starting <strong>TR_</strong>.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p>The sending warehouse goes down and the receiving one goes up, by the same amount, at the same
+moment. The shop owns exactly as much as it did before — stock has moved, not changed.</p>
+<p>Both halves are recorded against the same transfer reference, so a movement report shows the two
+sides as one event rather than an unexplained loss at one branch and an unexplained gain at the
+other.</p>
+<figure><p>You can move a product to a branch that has never stocked it. The branch simply starts holding
+it from that moment.</p><img class="shot-full" src="images/transfer-list-desktop.png" alt="The Transfer list showing each transfer with its reference, date, source and destination warehouse and total"></figure>
+
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This field is required</strong></td>
+<td>a warehouse or quantity is blank</td>
+<td>fill the highlighted boxes</td>
+</tr>
+<tr>
+<td><strong>Insufficient stock for the selected product and warehouse.</strong></td>
+<td>the sending warehouse does not hold that many</td>
+<td>reduce the quantity, or send from the other warehouse</td>
+</tr>
+<tr>
+<td>the product shows 0 in stock</td>
+<td>the sending warehouse has none</td>
+<td>you cannot send what is not there; order it in instead</td>
+</tr>
+<tr>
+<td>both warehouse boxes are the same</td>
+<td>a transfer needs two different places</td>
+<td>change one of them</td>
+</tr>
+</tbody></table>
+<h2>A word about counting</h2>
+<p>After a transfer, each branch&#39;s figures change. If somebody is part-way through a stock count at
+either branch, finish the count first — otherwise the count sheet was taken before the stock
+moved and the variance it reports will be the transfer, not a real discrepancy.</p>
+<h1>Write off damage</h1>
+<p>Cement has set in the bag, nails have rusted, a sheet of plywood was dropped. The stock is gone
+but nobody bought it, so it has to come off the shelf deliberately.</p>
+<p>An adjustment can also add stock — found goods, or correcting an entry made wrong.</p>
+<p><strong>Before you start:</strong> if you are correcting a whole shelf rather than one item, a stock count is
+the better tool. See <a href="13-count-the-shelf.md">Count the shelf</a>.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Adjustment</strong>, then <strong>Create Adjustment</strong>.</p><img class="shot-full" src="images/adjust-create-desktop.png" alt="The Create Adjustment screen with Warehouse and Date boxes above a product search and an empty line table"></figure>
+</li>
+<li><p>Choose the <strong>Warehouse</strong> the stock is in.
+Nothing can be added until you do — the product list is drawn from that warehouse.</p>
+</li>
+<li><p>Set the <strong>Date</strong>.</p>
+</li>
+<li><p>Find the product by name or code and press it to add a line.
+The <strong>Stock</strong> column shows what that warehouse currently holds.</p>
+</li>
+<li><p>Enter the <strong>Qty</strong> — how many are affected, not what should be left.</p>
+</li>
+<li><p>Set <strong>Type</strong>:</p>
+<ul>
+<li><strong>Subtraction</strong> takes stock off, for damage, loss or theft.</li>
+<li><strong>Addition</strong> puts stock on, for goods found or an earlier mistake.</li>
+</ul>
+</li>
+<li><p>Type what happened in <strong>Note</strong>. &quot;Rust damage found in the yard&quot; is enough, and it is what
+somebody will read when they ask why the figure changed.</p>
+</li>
+<li><p>Press <strong>Submit</strong>.
+The adjustment gets a reference starting <strong>AD_</strong>.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p>The shelf changes immediately, and the movement is recorded against the adjustment reference —
+so anyone asking &quot;why is this figure different?&quot; can trace it back to this document and your
+note.</p>
+<figure><p>Written-off stock still cost the shop money. It does not come back as a refund from anyone, and
+it reduces what the stock on hand is worth. Regular write-offs of the same product are worth
+raising with whoever runs the shop — it usually means a storage problem rather than an
+accounting one.</p><img class="shot-full" src="images/adjust-list-desktop.png" alt="The Adjustment list showing each adjustment with its reference, date, warehouse and number of products"></figure>
+
+<figure><p>On a phone the screen stacks into one column and works the same way.</p><img class="shot-detail" src="images/adjust-create-mobile.png" alt="The Create Adjustment screen on a phone, with the warehouse, date and product fields stacked vertically"></figure>
+
+<h2>If it does not work</h2>
+<img class="shot-detail" src="images/err-adjustment-empty-desktop.png" alt="The Create Adjustment screen showing required-field messages after Submit was pressed with the form empty">
+
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This field is required</strong></td>
+<td>warehouse, quantity or type is blank</td>
+<td>fill the highlighted boxes</td>
+</tr>
+<tr>
+<td>nothing found when searching a product</td>
+<td>no warehouse chosen, or that warehouse has no record of it</td>
+<td>choose the warehouse first; then check the product exists</td>
+</tr>
+<tr>
+<td>a quantity of 0 is refused</td>
+<td>an adjustment of nothing is not an adjustment</td>
+<td>enter the number actually affected</td>
+</tr>
+<tr>
+<td><strong>Insufficient stock for the selected product and warehouse.</strong></td>
+<td>you are subtracting more than the shelf holds</td>
+<td>check the <strong>Stock</strong> column and enter no more than that</td>
+</tr>
+</tbody></table>
+<h1>Count the shelf</h1>
+<p>A stock count is where you walk the shelves, write down what is actually there, and make the
+system agree with reality. It is the only thing that catches slow losses — miscounts at the
+counter, breakage nobody reported, short deliveries nobody noticed.</p>
+<p><strong>Before you start:</strong> pick a quiet time. Stock that moves during a count makes the figures
+argue with each other.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Stock Counts</strong>, then start a new count.</p><img class="shot-full" src="images/stock-counts-desktop.png" alt="The Stock Counts list showing counts with their reference, date, warehouse and status"></figure>
+</li>
+<li><p>Choose the <strong>Warehouse</strong> you are counting and set the <strong>Date</strong>.</p>
+</li>
+<li><p>Optionally choose a <strong>Category</strong> to count one department at a time — fasteners today,
+paint tomorrow. A whole-shop count of 200 lines in one go rarely gets finished.</p>
+</li>
+<li><p>Submit to open the count.
+It is created as a <strong>draft</strong>, and a sheet is produced listing every product held at that
+warehouse with what the system believes is there.</p>
+</li>
+<li><p>Walk the shelves and enter what you actually count against each line.
+Nothing changes on the shelf while you do this — a draft count is just a list.</p>
+</li>
+<li><p>Save as you go. You can leave a draft and come back to it.</p>
+</li>
+<li><p>When the sheet is complete, complete the count.
+Every line where your figure differs is posted, and the shelf becomes what you counted.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p>The stock figures now match what you found. Each correction is recorded against the count
+reference, so the difference is traceable rather than appearing from nowhere.</p>
+<p>Lines you counted correctly are left alone — only differences move.</p>
+<p>A completed count cannot be edited or completed again. If you find you counted wrong, make an
+adjustment for the difference and say why. See <a href="12-write-off-damage.md">Write off damage</a>.</p>
+<h2>Reading the result</h2>
+<p>A count that finds nothing wrong across 200 lines is unusual. A few units out on fast-moving
+small items — nails by the kilo, screws by the box — is normal.</p>
+<p>What is worth investigating is a large difference on a high-value line, or the same product
+coming up short every count. That is a pattern, not an accident.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This field is required</strong></td>
+<td>warehouse or date is blank</td>
+<td>fill the highlighted boxes</td>
+</tr>
+<tr>
+<td><strong>This count is {status} and can no longer be edited.</strong></td>
+<td>the count is finished or cancelled</td>
+<td>start a new count, or make an adjustment for the difference</td>
+</tr>
+<tr>
+<td><strong>This count is already completed.</strong></td>
+<td>somebody completed it already</td>
+<td>check the stock figures; the corrections have been posted</td>
+</tr>
+<tr>
+<td>the sheet is missing products</td>
+<td>the sheet only lists what that warehouse holds a record of</td>
+<td>check the warehouse, and the category filter if you used one</td>
+</tr>
+<tr>
+<td>the figures changed while counting</td>
+<td>stock moved during the count</td>
+<td>finish the count, then check for transfers or sales made in the meantime</td>
+</tr>
+</tbody></table>
+<h1>What to reorder</h1>
+<p>This is the screen to open before ringing a supplier. It lists what has run down, how far below
+its alert level it is, and roughly what restocking will cost.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Reports</strong>, then <strong>Reorder Suggestions</strong>.</p><img class="shot-full" src="images/report-reorder-desktop.png" alt="The Reorder Suggestions screen showing Products To Reorder and Estimated Cost totals above a table of products with In Stock, Alert Quantity, Shortfall and Suggested Qty columns"></figure>
+</li>
+<li><p>Use the <strong>Warehouse</strong> box to look at one branch, or leave it on all warehouses for the whole
+shop.</p>
+</li>
+<li><p>Read the two figures at the top:</p>
+<ul>
+<li><strong>Products To Reorder</strong> — how many lines need attention.</li>
+<li><strong>Estimated Cost</strong> — roughly what it costs to bring them all back up, at current cost
+prices.</li>
+</ul>
+</li>
+<li><p>Work down the table. For each line:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it tells you</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>In Stock</strong></td>
+<td>what is on the shelf now, shown in red when it is zero</td>
+</tr>
+<tr>
+<td><strong>Alert Quantity</strong></td>
+<td>the level this product should not drop below</td>
+</tr>
+<tr>
+<td><strong>Shortfall</strong></td>
+<td>how far under that level it is</td>
+</tr>
+<tr>
+<td><strong>Suggested Qty</strong></td>
+<td>how much to order, based on the product&#39;s reorder quantity</td>
+</tr>
+<tr>
+<td><strong>Preferred Supplier</strong></td>
+<td>who normally supplies it, where that has been set</td>
+</tr>
+</tbody></table>
+</li>
+<li><p>Order what you need. See <a href="07-order-stock.md">Order stock</a>.</p>
+</li>
+</ol>
+<h2>On a phone</h2>
+<figure><p>Nothing is dropped on a phone. All nine columns are still there — the table is wider than the
+screen, so you drag the table itself sideways to reach <strong>Suggested Qty</strong> and <strong>Preferred
+Supplier</strong> out to the right. The page behind it does not move; only the table does.</p><img class="shot-detail" src="images/report-reorder-mobile.png" alt="The Reorder Suggestions screen on a phone, the table cut off at the right edge with the remaining columns reachable by dragging it sideways"></figure>
+
+<p>The two totals at the top sit above the table, so <strong>Products To Reorder</strong> and <strong>Estimated
+Cost</strong> are readable without any dragging.</p>
+<h2>What happens next</h2>
+<p>Nothing on this screen changes stock. It is a list to act on, not a document.</p>
+<p>Once goods are booked in, lines drop off as they come back above their alert level.</p>
+<h2>Making the suggestions useful</h2>
+<p>The suggestions are only as good as the levels set on each product:</p>
+<ul>
+<li><strong>Alert quantity</strong> is the level that puts a product on this list. Set it to roughly what you
+sell between deliveries, so you are warned while there is still time to order.</li>
+<li><strong>Reorder quantity</strong> is what <strong>Suggested Qty</strong> is based on.</li>
+<li><strong>Preferred supplier</strong> fills the last column. Without it you are looking the supplier up
+every time.</li>
+</ul>
+<p>All three are on the product&#39;s own record. See <a href="17-add-a-product.md">Add a product</a>.</p>
+<p>A product with its alert quantity left at 0 never appears here, however empty it gets. If
+something ran out and this screen never warned you, that is the first thing to check.</p>
+<h2>Related</h2>
+<figure><p><strong>Reports</strong> → <strong>Product Quantity Alerts</strong> shows the same shortages per warehouse, which is more
+use when deciding whether to transfer stock between branches rather than buy more.</p><img class="shot-full" src="images/report-alerts-desktop.png" alt="The Product Quantity Alerts screen listing products by warehouse with their quantity and alert quantity"></figure>
+
+<p>See <a href="11-move-stock.md">Move stock to the branch</a>.</p>
+<h1>What the stock is worth</h1>
+<p>What the shop is holding, and what it cost. This is the figure for insurance, for the accountant,
+and for knowing how much money is sitting on the shelves rather than in the bank.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Reports</strong>, then <strong>Stock Valuation</strong>.</p><img class="shot-full" src="images/report-valuation-desktop.png" alt="The Stock Valuation screen showing Products, Total quantity and Stock value totals above a table of products by warehouse with In Stock, Average cost and Stock value"></figure>
+</li>
+<li><p>Read the three figures at the top:</p>
+<ul>
+<li><strong>Products</strong> — how many product-and-warehouse lines are holding stock.</li>
+<li><strong>Total quantity</strong> — total units, across everything.</li>
+<li><strong>Stock value</strong> — what it all cost, at average cost.</li>
+</ul>
+</li>
+<li><p>Use the <strong>Warehouse</strong> box to see one branch on its own.
+Each branch is valued separately, which is what you need when they are insured separately or
+when you are deciding where stock should sit.</p>
+</li>
+<li><p>The table lists each product with its <strong>In Stock</strong>, <strong>Average cost</strong> and <strong>Stock value</strong>.</p>
+</li>
+</ol>
+<h2>What the figures mean</h2>
+<p><strong>This is cost, not retail.</strong> It is what the shop paid, not what the shop would get. Valuing
+stock at selling price would book the profit before anyone has bought anything.</p>
+<p><strong>Average cost</strong> is the weighted average of everything you have bought. If you held 56 bags at
+₱249.53 and then bought 120 at ₱252, the average becomes ₱250.44 — and that figure is what the
+next sale&#39;s margin is worked out against.</p>
+<p>So the valuation moves when you buy, not only when you sell. A delivery at a higher price raises
+the value of the stock you already had.</p>
+<h2>What to look for</h2>
+<p><strong>Value concentrated in a few lines.</strong> Power tools and roofing sheets tie up far more money than
+nails. If cash is tight, that is where it is.</p>
+<p><strong>Stock that never moves.</strong> Cross this against <strong>Reports</strong> → <strong>Stock Movements</strong>: a line with a
+high value and no movements for months is money sitting still.</p>
+<p><strong>A branch holding more than it sells.</strong> Compare the two warehouses. Stock in the wrong place is
+as useless as no stock, and moving it costs less than buying more. See
+<a href="11-move-stock.md">Move stock to the branch</a>.</p>
+<h2>Related reports</h2>
+<img class="shot-full" src="images/report-movements-desktop.png" alt="The Stock Movements report listing movements with their date, type, product, warehouse, quantity, balance after and cost">
+
+<table>
+<thead>
+<tr>
+<th>Report</th>
+<th>What it answers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Stock Movements</strong></td>
+<td>why a figure changed — every movement with the document behind it</td>
+</tr>
+<tr>
+<td><strong>Profit and Loss</strong></td>
+<td>what the shop made over a period</td>
+</tr>
+<tr>
+<td><strong>Sales Report</strong></td>
+<td>what sold, and for how much</td>
+</tr>
+</tbody></table>
+<h1>The day&#39;s takings</h1>
+<p>What was sold, what was in the drawer, and whether the two agree. This is the end-of-day check
+and the first place to look when cash is missing.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Reports</strong>, then <strong>Till Sessions</strong>.
+Every shift is listed, newest first.</p><img class="shot-full" src="images/till-sessions-desktop.png" alt="The Till Sessions report listing shifts with their Z number, warehouse, terminal, cashier, times, expected and counted cash and the difference"></figure>
+</li>
+<li><p>Each row is one shift: who opened it, which terminal, when it opened and closed, and the
+money.</p>
+</li>
+<li><p>Open a shift to see its full <strong>Z-reading</strong>.</p>
+</li>
+</ol>
+<h2>Reading a Z-reading</h2>
+<table>
+<thead>
+<tr>
+<th>Line</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Opening float</strong></td>
+<td>the cash the drawer started with</td>
+</tr>
+<tr>
+<td><strong>Cash sales</strong></td>
+<td>cash taken during the shift — not GCash or card</td>
+</tr>
+<tr>
+<td><strong>Cash in</strong> / <strong>Cash out</strong></td>
+<td>money added or removed without a sale</td>
+</tr>
+<tr>
+<td><strong>Expected cash</strong></td>
+<td>what should have been in the drawer</td>
+</tr>
+<tr>
+<td><strong>Counted cash</strong></td>
+<td>what the cashier actually counted</td>
+</tr>
+<tr>
+<td><strong>Short / over</strong></td>
+<td>the difference between the two</td>
+</tr>
+</tbody></table>
+<p>It also carries the number of invoices, the first and last invoice numbers, the VAT split, and
+any voided sales.</p>
+<p><strong>The invoice range matters.</strong> The BIR expects an unbroken run of invoice numbers. A voided sale
+still appears in the range rather than leaving a gap, which is why cancelling a sale keeps the
+invoice. See <a href="05-cancel-a-sale.md">Cancel a sale</a>.</p>
+<h2>What a difference means</h2>
+<p><strong>Short</strong> means less cash than expected; <strong>over</strong> means more. Both are recorded, not hidden.</p>
+<p>The usual causes, in rough order of likelihood:</p>
+<ol>
+<li>Change given wrong.</li>
+<li>A cash sale rung up as GCash, or the other way round.</li>
+<li>Money taken from the drawer without using <strong>Cash out</strong> — paying a delivery driver, buying
+lunch.</li>
+<li>A sale rung up at the wrong price.</li>
+</ol>
+<p>A drawer that balances to the centavo every single day deserves a second look rather than
+praise. It usually means somebody is typing the expected figure into <strong>Counted cash</strong> instead of
+counting the drawer.</p>
+<h2>The rest of the day&#39;s figures</h2>
+<table>
+<thead>
+<tr>
+<th>Report</th>
+<th>What it answers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Sales Report</strong></td>
+<td>what sold, in what quantity, for how much</td>
+</tr>
+<tr>
+<td><strong>Profit and Loss</strong></td>
+<td>income less cost of goods and expenses, over a period</td>
+</tr>
+<tr>
+<td><strong>Payments Sale</strong></td>
+<td>what came in, split by payment method</td>
+</tr>
+</tbody></table>
+<img class="shot-full" src="images/report-sales-desktop.png" alt="The Sales report listing sales over a date range with their reference, customer, total and payment status">
+
+<p>The <strong>Dashboard</strong> shows the headline figures for the current week without opening a report at
+all.</p>
+<h1>Add a product</h1>
+<p>A new line arrives that the shop has never stocked. Putting it in the catalogue correctly now
+saves correcting every sale of it later.</p>
+<p><strong>Before you start:</strong> decide the code you will use. The shop&#39;s hardware lines run <strong>HW-0001</strong>
+upward. Keep to a pattern — codes are what people scan and search by.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>Products</strong>, then <strong>Create Product</strong>.</p><img class="shot-full" src="images/products-create-desktop.png" alt="The Create Product screen with Name, Code, Category, Brand, Cost, Price and Unit fields"></figure>
+</li>
+<li><p>Enter the <strong>Name</strong> as a person at the counter would say it, including the size.
+&quot;Portland Cement Type 1 40kg&quot; is findable. &quot;Cement&quot; is not.</p>
+</li>
+<li><p>Enter the <strong>Code</strong>, or generate one.</p>
+</li>
+<li><p>Choose the <strong>Category</strong> and <strong>Brand</strong>.
+Categories are what the reports group by, so putting a line in the wrong one hides it.</p>
+</li>
+<li><p>Choose the <strong>Unit</strong>.
+This is how the item is sold — bag, sheet, length, kilogram, piece, roll. Getting it wrong
+makes every document about that product nonsense: cement by the piece, wire by the bag.</p>
+</li>
+<li><p>Enter the <strong>Cost</strong> — what the supplier charges you.
+This is the starting figure. It is recalculated as an average every time you book in a
+delivery.</p>
+</li>
+<li><p>Enter the <strong>Price</strong> — what the customer pays, including VAT.</p>
+</li>
+<li><p>Set the tax method so the price is treated as <strong>VAT-inclusive</strong>.
+This is the one to get right. Philippine retail prices are displayed with VAT already in
+them, so the label is what the customer pays and the VAT is worked back out of it. If the
+product is set up as VAT-exclusive instead, a ₱276 bag of cement rings up at ₱309 and the
+receipt is wrong.</p>
+</li>
+<li><p>Set the <strong>Stock Alert</strong> quantity — the level at which it should appear on the reorder list.
+Roughly what you sell between deliveries. Leaving it at 0 means it never warns you.</p>
+</li>
+<li><p>Press <strong>Submit</strong>.</p>
+</li>
+</ol>
+<h2>What happens next</h2>
+<p>The product appears in the catalogue and gets a stock record in <strong>every</strong> warehouse, starting at
+zero. It is immediately findable at the counter, though with nothing to sell until stock arrives.</p>
+<figure><p>To put stock on it, either book in a delivery (<a href="07-order-stock.md">Order stock</a>, then
+<a href="09-book-in-a-delivery.md">Book in a delivery</a>) or, for opening stock you already have, make an
+<strong>Addition</strong> adjustment (<a href="12-write-off-damage.md">Write off damage</a>).</p><img class="shot-full" src="images/products-list-desktop.png" alt="The Product List showing products with their image, name, code, category, brand, price, unit and quantity"></figure>
+
+<h2>If it does not work</h2>
+<img class="shot-detail" src="images/err-product-empty-desktop.png" alt="The Create Product screen showing This field is required messages after Submit was pressed with the form empty">
+
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Please fill the form correctly</strong></td>
+<td>the red box at the top of the screen, saying only that something is wrong</td>
+<td>the boxes at fault are outlined in red further down, each with its own message</td>
+</tr>
+<tr>
+<td><strong>This field is required</strong></td>
+<td>a required box is blank</td>
+<td>the highlighted boxes are name, code, category, unit, cost and price</td>
+</tr>
+<tr>
+<td><strong>This code already used. Generate Now</strong></td>
+<td>another product already has that code</td>
+<td>use a different code, or press to generate one</td>
+</tr>
+<tr>
+<td>the price at the counter is higher than you typed</td>
+<td>the product is set VAT-exclusive</td>
+<td>edit it and set the price as VAT-inclusive</td>
+</tr>
+<tr>
+<td>it does not appear at the counter</td>
+<td>the warehouse holds none of it yet</td>
+<td>that is expected; stock it first</td>
+</tr>
+</tbody></table>
+<h1>Add a staff account</h1>
+<p>Everyone who uses CIMS should have their own sign-in. Shared logins make the Z-reading useless:
+when a drawer is short, &quot;who was on the till&quot; has to have an answer.</p>
+<p><strong>Before you start:</strong> decide what this person should be able to reach. See <em>Deciding what each
+person sees</em> below.</p>
+<h2>Steps</h2>
+<ol>
+<li><figure><p>From the menu, choose <strong>People</strong>, then <strong>Users</strong>.</p><img class="shot-full" src="images/people-users-desktop.png" alt="The Users management screen listing staff accounts with their name, username, email, phone and status"></figure>
+</li>
+<li><p>Press to create a user.</p>
+</li>
+<li><p>Enter their name, <strong>Username</strong>, <strong>Email</strong> and phone.
+The email is what they sign in with, so it must be one they can actually get to.</p>
+</li>
+<li><p>Set a password.</p>
+<p>It must be at least 8 characters and contain an uppercase and a lowercase letter. Give it to
+them directly and have them change it — do not send it by text.</p>
+</li>
+<li><p>Choose their <strong>Role</strong>.</p>
+</li>
+<li><p>Choose the warehouses they work at, or mark them as covering all.</p>
+</li>
+<li><p>Press to save.
+They can sign in straight away.</p>
+</li>
+</ol>
+<h2>Deciding what each person sees</h2>
+<p>The shop currently has one role, <strong>Owner</strong>, which can reach everything — the till, the stock,
+the cost prices, the reports and the settings.</p>
+<p>That is fine for a shop run by one family. It is not fine once you have counter staff who should
+not see what the shop pays for cement.</p>
+<figure><p>CIMS controls this through roles. <strong>Settings</strong> → <strong>Permissions</strong> is where a role is created and
+what it can reach is ticked.</p><img class="shot-full" src="images/settings-perms-desktop.png" alt="The Permissions screen showing roles and the permissions that can be granted to each"></figure>
+
+<p>Two roles worth creating:</p>
+<p><strong>Cashier</strong> — the counter and nothing else. Can open a till, sell, hold baskets and close the
+drawer. Cannot see cost prices, cannot change products, cannot reach reports.</p>
+<p><strong>Stockman</strong> — purchases, goods receipts, transfers, adjustments and counts. Cannot sell and
+cannot reach the money reports.</p>
+<p>This guide was written on a shop with only the Owner role, so what a restricted account actually
+looks like on screen is not shown here. Create the role, sign in as that person once, and check
+the menu shows only what you intended.</p>
+<h2>What happens next</h2>
+<p>Their sign-ins are recorded, and anything they do carries their name — the sale, the adjustment,
+the approval, the drawer count.</p>
+<p>To stop someone using CIMS, mark their account inactive rather than deleting it. Deleting an
+account that has documents against it would leave those documents with nobody&#39;s name on them.</p>
+<h2>If it does not work</h2>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>This Email already taken.</strong></td>
+<td>an account already uses that email</td>
+<td>use another, or reactivate the existing account</td>
+</tr>
+<tr>
+<td><strong>It must be at least 8 characters. It needs an uppercase letter. It needs a lowercase letter.</strong></td>
+<td>the password is too weak</td>
+<td>use a longer one with both cases</td>
+</tr>
+<tr>
+<td><strong>This field is required</strong></td>
+<td>a required box is blank</td>
+<td>fill the highlighted boxes</td>
+</tr>
+<tr>
+<td>they sign in but see nothing</td>
+<td>their role has no permissions ticked</td>
+<td><strong>Settings</strong> → <strong>Permissions</strong>, and grant what the job needs</td>
+</tr>
+</tbody></table>
+<h1>When something goes wrong</h1>
+<p>Every message below was produced by actually causing the problem on a working shop. They are
+printed word for word as they appear on screen.</p>
+<p>Find your message in the first column. Messages with <strong>{braces}</strong> fill in a real figure, name or
+date when you see them.</p>
+<p>They are listed alphabetically, because you are looking at a message rather than thinking about
+which part of the system produced it.</p>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Choose Warehouse</strong></td>
+<td>you pressed <strong>Pay Now</strong> before choosing a warehouse at the counter</td>
+<td>choose the warehouse in the second box down, then ring the sale up again</td>
+</tr>
+<tr>
+<td><strong>Everything on this order has been received, so there is nothing to close.</strong></td>
+<td>you tried to close an order short, but it is already complete</td>
+<td>no action needed; check its status on the <strong>Purchases</strong> list</td>
+</tr>
+<tr>
+<td><strong>Insufficient stock for the selected product and warehouse.</strong></td>
+<td>this warehouse does not hold that many, even if another branch does</td>
+<td>check the stock figure; reduce the quantity, sell from the other branch, or transfer stock in</td>
+</tr>
+<tr>
+<td><strong>It must be at least 8 characters. It needs an uppercase letter. It needs a lowercase letter.</strong></td>
+<td>the password for a staff account is too weak</td>
+<td>use a longer password with both upper and lower case</td>
+</tr>
+<tr>
+<td><strong>Only {amount} is still due on this sale.</strong></td>
+<td>you are taking more than the invoice balance</td>
+<td>enter the outstanding amount; if the customer is paying more, the rest is a payment on another invoice</td>
+</tr>
+<tr>
+<td><strong>Only {amount} is still owed on this purchase.</strong></td>
+<td>you are paying a supplier more than the balance</td>
+<td>enter the outstanding amount</td>
+</tr>
+<tr>
+<td><strong>Open the till before selling. No drawer is open for you at this warehouse.</strong></td>
+<td>there is no open drawer for you here</td>
+<td>see <a href="02-open-the-till.md">Open the till</a></td>
+</tr>
+<tr>
+<td><strong>The reset email could not be sent. Check the SMTP settings under Settings, then System Settings.</strong></td>
+<td>the shop&#39;s outgoing mail is not set up, so no reset email can leave</td>
+<td>see <em>A reset email that never arrives</em> below</td>
+</tr>
+<tr>
+<td><strong>Please fill the form correctly</strong></td>
+<td>something on the form is wrong or missing, and this message does not say what</td>
+<td>scroll the form; the boxes at fault are outlined in red with their own message underneath</td>
+</tr>
+<tr>
+<td><strong>That sale has already been voided.</strong></td>
+<td>somebody voided this invoice already</td>
+<td>check the status on the <strong>Sales</strong> list; no further action is needed</td>
+</tr>
+<tr>
+<td><strong>That sale was not made today. Use a sale return instead.</strong></td>
+<td>voiding only applies to the current day</td>
+<td>handle it as a sale return</td>
+</tr>
+<tr>
+<td><strong>That shift has already been counted down. Use a sale return instead.</strong></td>
+<td>the drawer was closed after the sale</td>
+<td>the drawer is settled; handle it as a return instead</td>
+</tr>
+<tr>
+<td><strong>The amount paid cannot be more than the order total of {amount}.</strong></td>
+<td>the tendered figure is above the sale total</td>
+<td>put what the customer owes in <strong>Paying Amount</strong>, and what they handed over in <strong>Received Amount</strong></td>
+</tr>
+<tr>
+<td><strong>This count is already completed.</strong></td>
+<td>the stock count is finished</td>
+<td>corrections have been posted; make an adjustment if you need to change something</td>
+</tr>
+<tr>
+<td><strong>This count is {status} and can no longer be edited.</strong></td>
+<td>the count is finished or cancelled</td>
+<td>start a new count, or make an adjustment</td>
+</tr>
+<tr>
+<td><strong>This drawer already has a session open. Close it before opening another.</strong></td>
+<td>this terminal already has an open drawer</td>
+<td>press the amount at the top left to see it, and close it first</td>
+</tr>
+<tr>
+<td><strong>This Email already taken.</strong></td>
+<td>a staff account already uses that email</td>
+<td>use a different email, or reactivate the existing account</td>
+</tr>
+<tr>
+<td><strong>This code already used. Generate Now</strong></td>
+<td>another product has that code</td>
+<td>use a different code, or press to generate one</td>
+</tr>
+<tr>
+<td><strong>This field is required</strong></td>
+<td>a box that must be filled is empty</td>
+<td>the box is outlined in red; fill it and submit again</td>
+</tr>
+<tr>
+<td><strong>This order was already closed short on {date}.</strong></td>
+<td>somebody closed this order short already</td>
+<td>check the <strong>Purchases</strong> list for the reason recorded</td>
+</tr>
+<tr>
+<td><strong>This order was closed short on {date} ({reason}). Raise a new order for anything that still arrives.</strong></td>
+<td>the goods turned up after the order was closed</td>
+<td>raise a new order for what arrived; the closed one stays closed</td>
+</tr>
+<tr>
+<td><strong>This purchase is awaiting approval and cannot be received yet.</strong></td>
+<td>the order has not been signed off</td>
+<td>see <a href="08-approve-an-order.md">Approve an order</a></td>
+</tr>
+<tr>
+<td><strong>This purchase is not awaiting approval (it is {status}).</strong></td>
+<td>it has already been approved or rejected</td>
+<td>no action needed</td>
+</tr>
+<tr>
+<td><strong>This purchase was rejected and cannot be received.</strong></td>
+<td>the order was turned down</td>
+<td>raise a new order if the goods are genuinely wanted</td>
+</tr>
+<tr>
+<td><strong>This sale is already paid in full.</strong></td>
+<td>the invoice has nothing outstanding</td>
+<td>check the <strong>Sales</strong> list; no payment is due</td>
+</tr>
+<tr>
+<td><strong>This sale would take {customer} to {amount}, over their credit limit of {limit}. Take a payment, or raise the limit on the customer record.</strong></td>
+<td>a credit customer has reached their limit</td>
+<td>take a payment on their account, or raise the limit on their record</td>
+</tr>
+<tr>
+<td><strong>We can&#39;t find a user with that e-mail address.</strong></td>
+<td>you asked for a password reset for an address that has no account</td>
+<td>check the spelling; if it is right, that person has no CIMS account yet</td>
+</tr>
+</tbody></table>
+<h2>A reset email that never arrives</h2>
+<figure><p><strong>Forgot Password ?</strong> on the sign-in screen cannot send anything yet. The shop&#39;s outgoing mail
+settings are still the demonstration ones that came with the system, so the message has nowhere
+to go. This is what you get instead, at the top of the screen:</p><img class="shot-detail" src="images/err-forgot-smtp-desktop.png" alt="A red Failed message reading: The reset email could not be sent. Check the SMTP settings under Settings, then System Settings."></figure>
+
+<p>It takes up to half a minute to appear, because the system waits for the mail server to answer
+before giving up. The screen looks stuck in the meantime. Press once and wait.</p>
+<p>Do not wait for an email. Ask whoever looks after the shop&#39;s accounts to set you a new password
+— see <a href="18-add-a-staff-account.md">Add a staff account</a>.</p>
+<p>Making it work is a job for whoever set CIMS up: the outgoing mail server, port and sign-in go
+in <strong>Settings</strong> → <strong>System Settings</strong>, under <strong>SMTP Configuration</strong>. Two things to know before
+relying on it:</p>
+<ul>
+<li><p>The reset link in the email is built from the address CIMS publishes itself at, which is
+currently the counter PC&#39;s own address. A link opened on a phone will not work. That address
+has to change before reset emails are useful away from the counter.</p>
+</li>
+<li><figure><p>Anyone who can reach the sign-in screen can find out whether an email address has an account,
+because the screen answers this when it does not:</p><img class="shot-detail" src="images/err-forgot-unknown-desktop.png" alt="A red Failed message reading: We can't find a user with that e-mail address."></figure>
+
+<p>That is a different message from the one above, and the difference tells an outsider which
+addresses belong to staff. Worth raising with whoever maintains CIMS.</p>
+</li>
+</ul>
+<h2>Things that look broken but are not</h2>
+<p><strong>A screen sits blank for a few seconds.</strong> Reports and the counter product grid take about three
+to six seconds to fill. There is no message while they load, so a slow screen looks the same as a
+stuck one. Wait before pressing again — pressing twice can raise two documents.</p>
+<p><strong>A purchase order stays open after the delivery arrived.</strong> If anything was rejected or short,
+the order is genuinely not complete. See <a href="10-close-a-short-order.md">Close a short order</a>.</p>
+<p><strong>A voided sale is still on the list.</strong> That is deliberate. The invoice and its number stay, so
+the run of invoice numbers is unbroken for the BIR.</p>
+<p><strong>A held basket did not reserve the stock.</strong> Holding parks the basket; it does not take the goods
+off the shelf. If the stock sells meanwhile, you are told when you take payment.</p>
+<p><strong>The product is in the catalogue but not at the counter.</strong> The counter only shows what that
+warehouse holds. Check the warehouse box, and whether the product has any stock yet.</p>
+<h2>When none of this helps</h2>
+<p>Note three things before asking for help:</p>
+<ol>
+<li><strong>The exact message</strong>, word for word, or a photograph of the screen.</li>
+<li><strong>What you were doing</strong> — which screen, and what you pressed.</li>
+<li><strong>The reference</strong> of the document, if there is one: <strong>SL_</strong> for a sale, <strong>PR_</strong> for a
+purchase, <strong>GRN_</strong> for a receipt, <strong>TR_</strong> for a transfer, <strong>AD_</strong> for an adjustment,
+<strong>SC_</strong> for a count.</li>
+</ol>
+<p>A reference lets anyone find the exact record. Without it, the first ten minutes go on working
+out which one you meant.</p>
+<h1>Glossary</h1>
+<p>Only words that appear on screen and are not obvious from where they appear. Everything else is
+explained on the page where it is used.</p>
+<p><strong>Adjustment</strong> — Taking stock off the shelf, or putting it on, without a sale or a delivery.
+Used for damage, loss, or correcting a mistake. References start <strong>AD_</strong>.</p>
+<p><strong>Average cost</strong> — What a product has cost the shop on average, weighted across everything
+bought. It changes when you book in a delivery at a different price, and it is what every margin
+and stock valuation is worked out against. Not the shelf price.</p>
+<p><strong>Expected cash</strong> — What should be in the drawer: the opening float, plus cash sales, plus
+<strong>Cash in</strong>, less <strong>Cash out</strong>, less cash refunds.</p>
+<p><strong>Float</strong> — The cash a drawer starts the shift with, so there is change available before
+anything is sold.</p>
+<p><strong>Goods receipt</strong> — The record of a delivery actually arriving and being accepted. Separate from
+the purchase order, because what arrives is often not what was ordered. References start
+<strong>GRN_</strong>.</p>
+<p><strong>Purchase order</strong> — What you asked a supplier to send. It changes no stock on its own.
+References start <strong>PR_</strong>.</p>
+<p><strong>Reorder quantity</strong> — How much to buy when a product runs low. Used to work out <strong>Suggested
+Qty</strong> on the reorder screen.</p>
+<p><strong>Short-closed</strong> — A purchase order deliberately finished with part of it never delivered,
+because the balance is not coming. Keeps it out of the list of goods still expected.</p>
+<p><strong>Stock alert quantity</strong> — The level a product should not drop below. When it does, the product
+appears on the reorder and alert screens. A product left at 0 never appears, however empty it
+gets.</p>
+<p><strong>Terminal</strong> — The name of a counter. A shop with two tills gives each one a name so the two
+drawers can be told apart.</p>
+<p><strong>Till session</strong> — One shift on one drawer: opened with a float, closed with a count. Everything
+sold in between belongs to it.</p>
+<p><strong>Transfer</strong> — Moving stock between Main Warehouse and Branch Warehouse. References start
+<strong>TR_</strong>.</p>
+<p><strong>VAT-inclusive</strong> — The price already contains the 12% VAT, so the figure on the shelf is what
+the customer pays. The VAT is worked back out of it on the receipt. This is how Philippine retail
+prices are shown.</p>
+<p><strong>Void</strong> — Cancelling a sale made today, on the current shift. The stock goes back, the money
+comes off the drawer, and the invoice is kept and marked voided rather than deleted.</p>
+<p><strong>Z-reading</strong> — The end-of-day record for a drawer: float, cash counted, the difference, the
+invoice range, the VAT split and any voids. Produced when the till is closed and not editable
+afterwards.</p>
+<hr>
+<p>This list is short on purpose. A long glossary usually means the screens are using words the
+people operating them would not — which is a problem with the product rather than the guide. The
+entries above are the ones that genuinely could not be made obvious in place.</p>
+</body></html>

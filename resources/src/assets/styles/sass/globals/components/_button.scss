@@ -1,0 +1,380 @@
+html [type="button"],
+.btn[type="button"] {
+    -webkit-appearance: none !important;
+}
+
+.btn {
+    &.rounded,
+    &.btn-rounded {
+        border-radius: 40px !important;
+    }
+    &.btn-xl {
+        padding: .75rem 2rem;
+        font-size: 1.18rem;
+    }
+    padding: .5rem 1.25rem;
+    &:focus {
+        box-shadow: none;
+    }
+}
+
+.btn-secondary,
+.btn-raised-secondary {
+    color: $foreground !important;
+    background-color: $background !important;
+}
+
+.btn-icon {
+    [class^="i-"],
+    .icon {
+        vertical-align: middle;
+        margin: 0 2px;
+        -webkit-font-smoothing: subpixel-antialiased;
+    }
+    &.rounded-circle {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+    }
+}
+
+.btn-icon-text {
+    [class^="i-"],
+    .icon {
+        vertical-align: middle;
+        margin: 0 2px;
+        -webkit-font-smoothing: subpixel-antialiased;
+    }
+}
+
+.btn-outline-email {
+    background: rgba($gray-200, 0.6);
+}
+
+.btn-spinner {
+    width: 1em;
+    height: 1em;
+    background: transparent;
+    border-radius: 50%;
+    margin: 0 16px 0 0;
+    border: 2px solid transparent;
+}
+
+.btn-checkbox {
+    .checkbox {
+        display: inline;
+    }
+}
+
+.btn.btn-outline-light.btn-svg {
+    border-color: $gray-700;
+    &.active,
+    &:hover {
+        background: $primary;
+        border-color: $primary;
+        svg {
+            fill: #ffffff;
+        }
+    }
+    &:focus {
+        box-shadow: none !important;
+    }
+}
+
+.btn-raised {
+    color: #fff;
+}
+
+@each $name,
+$value in $theme-colors {
+    .btn-#{$name},
+    .btn-outline-#{$name} {
+        border-color: $value;
+        .btn-spinner {
+            animation: btn-glow-#{$name} 1s ease infinite;
+        }
+        &:hover {
+            background: $value;
+            box-shadow: 0 8px 25px -8px $value;
+            border-color: $value;
+        }
+        &:focus {
+            box-shadow: none;
+            box-shadow: 0 8px 25px -8px $value;
+        }
+    }
+    .btn-raised.btn-raised-#{$name} {
+        background: $value;
+        box-shadow: 0 4px 6px rgba($value, .11), 0 1px 3px rgba($value, .08);
+    }
+    @keyframes btn-glow-#{$name} {
+        0% {
+            box-shadow: 0 0 0 0.4em darken($value, 10%), 0 0 0 0.1em darken($value, 10%);
+            transform: rotate(360deg);
+        }
+        50% {
+            border-top-color: #ffffff;
+        }
+        100% {
+            box-shadow: 0 0 0 0.4em darken($value, 10%), 0 0 0 3.6em transparent;
+        }
+    }
+}
+
+// extra button
+// .ul-btn-raised--v2{
+//   transition: 0.3s ease-in;
+// }
+// .ul-btn-raised--v2:hover{
+//   transform: translateY(-2px);
+//   -webkit-box-shadow: -1px 9px 11px -4px rgba(0,0,0,0.1);
+//   -moz-box-shadow: -1px 9px 11px -4px rgba(0,0,0,0.1);
+//   box-shadow: -1px 9px 11px -4px rgba(0,0,0,0.1);
+// }
+// .card-title--margin{
+//   margin-bottom: 12px;
+// }
+// .ul-btn__icon{
+//   font-size: 0.875rem;
+// }
+// .ul-btn__icon span:last-child{
+//   margin-left: 5px;
+// }
+//social button
+.btn-facebook {
+    color: $white;
+    background-color: $facebook;
+    border-color: $facebook;
+}
+
+.btn-facebook:hover {
+    background-color: $facebook;
+    border-color: $facebook;
+}
+
+.btn-google {
+    color: $white;
+    background-color: $google;
+    border-color: $google;
+}
+
+.btn-twitter {
+    color: $white;
+    background-color: $twitter;
+    border-color: $twitter;
+}
+
+.btn-instagram {
+    color: $white;
+    background-color: $instagram;
+    border-color: $instagram;
+}
+
+.btn-linkedin {
+    color: $white;
+    background-color: $linkedin;
+    border-color: $linkedin;
+}
+
+.btn-dribble {
+    color: $white;
+    background-color: $dribble;
+    border-color: $dribble;
+}
+
+.btn-youtube {
+    color: $white;
+    background-color: $youtube;
+    border-color: $youtube;
+}
+
+// Social outline
+.btn-outline-facebook {
+    color: $facebook !important;
+    border-color: $facebook;
+    background: rgba($gray-200, 0.6);
+    &:hover {
+        background: darken($facebook, 5%);
+        border-color: darken($facebook, 5%);
+        color: $white !important;
+    }
+}
+
+.btn-outline-google {
+    color: $google !important;
+    border-color: $google;
+    background: rgba($gray-200, 0.6);
+    &:hover {
+        background: darken($google, 5%);
+        border-color: darken($google, 5%);
+        color: $white !important;
+    }
+}
+
+.btn-outline-twitter {
+    color: $twitter !important;
+    border-color: $twitter;
+    background: rgba($gray-200, 0.6);
+    &:hover {
+        background: darken($twitter, 5%);
+        border-color: darken($twitter, 5%);
+    }
+}
+
+// end social
+// .ul-bottom__line{
+//   padding-bottom: 18px;
+//   border-bottom: 1px solid $gray-400;
+// }
+// .ul-bottom__line:last-child{
+//   border-bottom: none;
+// }
+// .round{
+//   border-radius: 50%;
+// }
+// Ripple Effect
+.ripple {
+    position: relative;
+    overflow: hidden;
+    transform: translate3d(0, 0, 0);
+}
+
+.ripple:after {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform .5s, opacity 1s;
+}
+
+.ripple:active:after {
+    transform: scale(0, 0);
+    opacity: .3;
+    transition: 0s;
+}
+// ---------------------------------------------------------------
+// Legible labels on filled buttons
+//
+// Bootstrap builds .btn-* from the theme colours, and several of this
+// template's brand colours are too light to carry a white label:
+//
+//   primary / success  #10b981 + white  = 2.54:1
+//   warning            #f59e0b + white  = 2.15:1
+//   danger             #ef4444 + white  = 3.76:1
+//   info               #3b82f6 + white  = 3.68:1
+//
+// All below the 4.5:1 needed for normal text. Only the *fills* are adjusted
+// here -- $primary itself is untouched, so accents, active navigation, badges
+// and links keep the full-strength brand colour.
+//
+// Amber is handled differently on purpose: it is a light fill, and darkening
+// it far enough for white text turns it muddy. Dark text on the unchanged
+// amber reaches 8.26:1 and keeps the colour, which is also what Bootstrap's
+// own colour-yiq would pick.
+// ---------------------------------------------------------------
+
+// The green was darkened 11% to reach 4.64:1, which passes AA by about three
+// per cent. That is close enough to the line that any later nudge to the brand
+// colour, or to the ink on these fills, takes every primary button and success
+// badge below it without anything looking obviously wrong. 15% costs a shade of
+// brightness and buys a margin worth having: 5.86:1, comfortably clear, and
+// still recognisably the same green.
+$btn-primary-fill: darken($primary, 15%) !default;   // 5.86:1 with white
+$btn-success-fill: darken($success, 15%) !default;   // same green as $primary
+$btn-danger-fill: darken($danger, 12%) !default;     // 4.84:1 measured
+$btn-info-fill: darken($info, 9%) !default;          // 4.8:1 measured
+$btn-warning-ink: $gray-900 !default;                // 8.26:1 on amber
+
+@mixin filled-button($fill, $ink: #fff) {
+  background-color: $fill;
+  border-color: $fill;
+  color: $ink;
+
+  &:hover,
+  &:focus,
+  &.focus {
+    background-color: darken($fill, 5%);
+    border-color: darken($fill, 5%);
+    color: $ink;
+  }
+
+  &:not(:disabled):not(.disabled):active,
+  &:not(:disabled):not(.disabled).active {
+    background-color: darken($fill, 9%);
+    border-color: darken($fill, 9%);
+    color: $ink;
+  }
+}
+
+.btn-primary {
+  @include filled-button($btn-primary-fill);
+}
+.btn-success {
+  @include filled-button($btn-success-fill);
+}
+.btn-danger {
+  @include filled-button($btn-danger-fill);
+}
+.btn-info {
+  @include filled-button($btn-info-fill);
+}
+
+// Amber keeps its colour; the label goes dark instead.
+.btn-warning {
+  @include filled-button($warning, $btn-warning-ink);
+}
+
+// Outline variants fill with the colour on hover, so they need the same
+// treatment or the label becomes unreadable at exactly the moment it is used.
+.btn-outline-primary:hover,
+.btn-outline-primary:not(:disabled):not(.disabled):active {
+  @include filled-button($btn-primary-fill);
+}
+.btn-outline-success:hover,
+.btn-outline-success:not(:disabled):not(.disabled):active {
+  @include filled-button($btn-success-fill);
+}
+.btn-outline-danger:hover,
+.btn-outline-danger:not(:disabled):not(.disabled):active {
+  @include filled-button($btn-danger-fill);
+}
+.btn-outline-info:hover,
+.btn-outline-info:not(:disabled):not(.disabled):active {
+  @include filled-button($btn-info-fill);
+}
+.btn-outline-warning:hover,
+.btn-outline-warning:not(:disabled):not(.disabled):active {
+  @include filled-button($warning, $btn-warning-ink);
+}
+
+
+// The filled variants were fixed above, but an outline button draws its LABEL in
+// the brand colour on the card, and those colours are too light for text: on
+// white, primary and success measured 2.54:1, warning 2.15, info 3.68, danger
+// 3.76. Same ink as the fills, so a button reads identically before and after
+// hover; dark and secondary are already legible and keep their colour.
+$btn-outline-warning-ink: darken($warning, 18%) !default;  // 4.86:1 on white
+
+.btn-outline-primary { color: $btn-primary-fill; }
+.btn-outline-success { color: $btn-success-fill; }
+.btn-outline-danger  { color: $btn-danger-fill; }
+.btn-outline-info    { color: $btn-info-fill; }
+.btn-outline-warning { color: $btn-outline-warning-ink; }
+
+// Bootstrap's button-variant mixin re-applies the undarkened brand colour to the
+// disabled state, so a greyed-out Submit came out BRIGHTER than an active one.
+.btn-primary.disabled, .btn-primary:disabled,
+.btn-success.disabled, .btn-success:disabled { background-color: $btn-primary-fill; border-color: $btn-primary-fill; }
+.btn-danger.disabled, .btn-danger:disabled   { background-color: $btn-danger-fill; border-color: $btn-danger-fill; }
+.btn-info.disabled, .btn-info:disabled       { background-color: $btn-info-fill; border-color: $btn-info-fill; }
+.btn-warning.disabled, .btn-warning:disabled { color: $btn-warning-ink; }
+

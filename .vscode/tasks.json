@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CIMS: Laravel server",
+      "type": "shell",
+      "command": "php artisan serve",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "CIMS: Vue watcher",
+      "type": "shell",
+      "command": "npm run watch",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "CIMS: Clear Laravel caches",
+      "type": "shell",
+      "command": "php artisan optimize:clear",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+.dropzone {
+    min-height: 150px;
+    border: 2px dashed #673ab75e !important;
+    background: #F5F5F5 !important;
+    padding: 20px 20px;
+}
+
+// vue-upload-multiple-image sets #777 on its dropzone prompt, which is 4.48:1 on
+// white and 4.09:1 on the dark canvas -- narrowly failing in both themes.
+//
+// It sets it through a scoped selector (.drag-text[data-v-6ff5a0de]), which
+// outranks a plain class. Matching that specificity would mean writing the
+// component's build hash into our stylesheet, and that hash changes whenever the
+// dependency is rebuilt -- so an explicit override is the more durable answer.
+.drag-text,
+.drag-text h3 {
+  color: #6b7280 !important;   // 4.77:1 on white
+}
+
+.dark-theme {
+  .drag-text,
+  .drag-text h3 {
+    color: $dark-muted !important;
+  }
+}

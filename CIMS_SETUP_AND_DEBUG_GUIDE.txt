@@ -1,0 +1,367 @@
+CIMS INVENTORY MANAGEMENT SYSTEM
+VS CODE SETUP + DEBUG GUIDE
+Prepared: July 24, 2026
+
+============================================================
+1. WHAT THIS PROJECT USES
+============================================================
+Backend:
+- Laravel 8.48.x
+- PHP 7.3+ declared by the project; use PHP 8.0 or PHP 8.1 for this legacy build
+- MySQL
+- Laravel Passport API authentication
+
+Frontend:
+- Vue 2.6
+- Vue Router 3
+- Vuex 3
+- Laravel Mix 5 / Webpack 4
+- Node.js 16.20.2 recommended for this patched package
+
+IMPORTANT:
+Do not run this exact locked project with PHP 8.4. Its older Laravel/Symfony
+packages fail during application boot because PHP 8.4 treats several legacy
+signatures as deprecations that Laravel converts into exceptions.
+
+============================================================
+2. SOFTWARE TO INSTALL ON WINDOWS
+============================================================
+Install these first:
+
+1) Visual Studio Code
+2) XAMPP with PHP 8.0 or PHP 8.1, or another PHP 8.0/8.1 environment
+3) Composer 2
+4) NVM for Windows, then Node.js 16.20.2
+5) Git (recommended)
+
+After installing NVM for Windows, open PowerShell as Administrator:
+
+    nvm install 16.20.2
+    nvm use 16.20.2
+    node -v
+    npm -v
+
+The expected Node output is v16.20.2.
+
+Check PHP and Composer:
+
+    php -v
+    composer --version
+
+If PowerShell cannot find PHP, add your PHP folder to PATH, for example:
+
+    C:\xampp\php
+
+============================================================
+3. OPEN THE PROJECT IN VS CODE
+============================================================
+1) Extract CIMS_FIXED_SOURCE.zip.
+2) Rename the extracted folder to CIMS if desired.
+3) In VS Code, select File > Open Folder and open the project root.
+4) Install the recommended extensions shown by VS Code.
+5) Open Terminal > New Terminal.
+
+The project root is the folder containing:
+
+    artisan
+    composer.json
+    package.json
+    app\
+    resources\
+    routes\
+
+The Vue source is under resources/src, not resources/js.
+
+============================================================
+4. CREATE THE MYSQL DATABASE
+============================================================
+Start Apache and MySQL in XAMPP.
+
+Open phpMyAdmin and create an empty database named:
+
+    cims
+
+Recommended collation:
+
+    utf8mb4_unicode_ci
+
+Or create it from MySQL:
+
+    CREATE DATABASE cims CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+============================================================
+5. CREATE AND CONFIGURE .ENV
+============================================================
+From the VS Code terminal:
+
+PowerShell:
+
+    Copy-Item .env.example .env
+
+Command Prompt:
+
+    copy .env.example .env
+
+Edit .env and confirm these values:
+
+    APP_ENV=local
+    APP_DEBUG=true
+    APP_URL=http://127.0.0.1:8000
+
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=cims
+    DB_USERNAME=root
+    DB_PASSWORD=
+
+Set your initial administrator credentials BEFORE seeding:
+
+    CIMS_ADMIN_NAME="System Administrator"
+    CIMS_ADMIN_EMAIL=your-email@example.com
+    CIMS_ADMIN_PASSWORD="Use-A-Strong-Password-Here"
+
+Never commit .env to GitHub.
+
+============================================================
+6. INSTALL PHP AND VUE DEPENDENCIES
+============================================================
+Run these commands from the project root:
+
+    composer install
+    npm install
+
+Use composer install, not composer update. The lock file keeps the compatible
+legacy dependency versions.
+
+The original project used node-sass 4.14.1. The patched package uses
+node-sass 6.0.1 so it can install with Node.js 16.
+
+If node_modules came from another computer, delete it first:
+
+PowerShell:
+
+    Remove-Item node_modules -Recurse -Force
+    npm install
+
+============================================================
+7. INITIALIZE LARAVEL
+============================================================
+Run:
+
+    php artisan key:generate
+    php artisan optimize:clear
+    php artisan migrate:fresh --seed
+    php artisan passport:install --force
+    php artisan storage:link
+
+WARNING:
+`migrate:fresh --seed` deletes every table in the configured database. Use it
+only for a new/local database.
+
+For an existing database with real records, first make a backup, then run:
+
+    php artisan migrate
+
+Do not import the old cloudinventory.sql into a production database without
+reviewing it. The original dump contained old application data, OAuth client
+secrets, and SMTP configuration, so it is intentionally excluded from the
+clean fixed package.
+
+============================================================
+8. START THE SYSTEM
+============================================================
+Open two VS Code terminals.
+
+Terminal 1 - Laravel:
+
+    php artisan serve
+
+Terminal 2 - Vue watcher:
+
+    npm run watch
+
+Open:
+
+    http://127.0.0.1:8000
+
+The first frontend compilation is required because source files were fixed.
+Do not rely on the old compiled JavaScript from the uploaded archive.
+
+============================================================
+9. VS CODE TASKS INCLUDED
+============================================================
+Press Ctrl+Shift+P, choose "Tasks: Run Task", then select:
+
+- CIMS: Laravel server
+- CIMS: Vue watcher
+- CIMS: Clear Laravel caches
+
+The included .vscode/settings.json expects PHP at:
+
+    C:\xampp\php\php.exe
+
+Change that path if your PHP installation is elsewhere.
+
+============================================================
+10. MAJOR FIXES APPLIED
+============================================================
+Inventory and transaction safety:
+- Prevented product warehouse quantity from being saved below zero.
+- Added database row locking to POS and normal-sale stock deductions.
+- Added server-side validation for products, units, quantities, totals,
+  warehouses, clients, and payment values.
+- Changed product warehouse quantity from whole-number float to
+  DECIMAL(20,6), allowing fractional base quantities used by unit conversion.
+- Added SoftDeletes support and product_variant_id mass assignment to the
+  product_warehouse model.
+- Fixed inventory value calculations to multiply quantity by cost/price.
+
+API and route fixes:
+- Corrected the invalid roles/check/Create_page resource route.
+- Added missing controller methods used by registered routes.
+- Protected invoice, PDF, payment PDF, print, and product-filter endpoints
+  with Passport authentication and active-user middleware.
+- Re-enabled API throttling.
+- Removed installer routes that referenced nonexistent controller methods.
+- Removed the authenticated /login self-redirect loop.
+
+Authentication and security:
+- Blocked inactive users before protected actions execute and after login.
+- Replaced the brittle serialized Passport token checker.
+- Removed the shipped .env, Passport private/public keys, session files,
+  cache files, logs, installed marker, and database dump from the clean build.
+- Replaced the known seeded administrator password with .env-controlled
+  credentials.
+- Stopped ignoring composer.lock.
+
+Controller and runtime fixes:
+- Fixed unqualified Exception catches that could not catch real exceptions in
+  namespaced controllers.
+- Fixed missing ValidationException namespace in PermissionsController.
+- Added SMTP creation and validation.
+- Made logo upload optional and safely validated image uploads.
+- Added authorization and a JSON response to the clear-cache endpoint.
+- Corrected installer Artisan calls and removed raw exception disclosure.
+- Fixed a strict MySQL GROUP BY issue in the dashboard top-products query.
+- Made POS show the actual insufficient-stock message returned by Laravel.
+
+Developer setup:
+- Added VS Code extension recommendations, settings, and tasks.
+- Added scripts/project-doctor.ps1.
+- Updated the local .env example.
+
+============================================================
+11. VALIDATION COMPLETED
+============================================================
+Completed in the review environment:
+- 307 PHP source files initially checked with no syntax errors.
+- All patched PHP files rechecked with no syntax errors.
+- 110 JavaScript/Vue script blocks checked with Node syntax validation.
+- All explicit API controller routes now resolve to existing methods.
+- Verified that the clean package does not contain the uploaded .env,
+  Passport key files, runtime sessions, cached views, logs, or SQL dump.
+
+Not completed in this environment:
+- Full browser login and end-to-end CRUD testing against MySQL.
+- Stripe card charging.
+- Twilio SMS sending.
+- SMTP delivery.
+- Production deployment.
+
+Those require your local database and private service credentials.
+
+============================================================
+12. COMMON ERRORS
+============================================================
+A) "Implicitly marking parameter ... as nullable is deprecated"
+Cause: PHP 8.4 with this old Laravel/Symfony lock.
+Fix: switch to PHP 8.0 or 8.1, then run:
+
+    composer install
+    php artisan optimize:clear
+
+B) node-sass installation error
+Fix:
+
+    nvm use 16.20.2
+    Remove-Item node_modules -Recurse -Force
+    npm install
+
+C) "No application encryption key"
+Fix:
+
+    php artisan key:generate
+
+D) Database connection refused
+Check that MySQL is running and the DB_* values in .env are correct.
+Then run:
+
+    php artisan config:clear
+
+E) 401 Unauthorized from API
+Run:
+
+    php artisan passport:install --force
+    php artisan optimize:clear
+
+Log out and log in again to obtain a new access token.
+
+F) Images or uploads do not show
+Run:
+
+    php artisan storage:link
+
+G) 500 error
+Read the newest entries in:
+
+    storage/logs/laravel.log
+
+For local debugging only:
+
+    APP_DEBUG=true
+
+Never leave APP_DEBUG=true in production.
+
+============================================================
+13. BEFORE DEPLOYING
+============================================================
+1) Set APP_ENV=production and APP_DEBUG=false.
+2) Use a strong database user/password.
+3) Configure HTTPS.
+4) Replace all test SMTP, Stripe, and Twilio values.
+5) Run database backups before migrations.
+6) Build frontend assets with npm run production.
+7) Run:
+
+    php artisan optimize:clear
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+
+8) Change the initial administrator password immediately.
+9) Plan an upgrade from Laravel 8 / Vue 2 because both are legacy stacks.
+
+============================================================
+14. SAFE UPDATE WORKFLOW
+============================================================
+Create a Git branch before more changes:
+
+    git init
+    git add .
+    git commit -m "Baseline CIMS fixed package"
+    git checkout -b feature/next-fix
+
+For every module, test this sequence:
+
+1) Create record
+2) Read/list/search record
+3) Update record
+4) Delete/restore behavior
+5) Permissions for administrator and restricted user
+6) Stock effect before and after transaction
+7) Validation with invalid data
+8) Concurrent sale attempt for the same low-stock product
+9) Export/PDF/email/SMS where applicable
+
+END OF GUIDE

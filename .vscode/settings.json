@@ -1,0 +1,14 @@
+{
+  "files.exclude": {
+    "**/vendor": true,
+    "**/node_modules": true,
+    "storage/framework/cache": true,
+    "storage/framework/views": true
+  },
+  "editor.formatOnSave": false,
+  "php.validate.executablePath": "C:\\xampp\\php\\php.exe",
+  "eslint.validate": ["javascript", "vue"],
+  "files.associations": {
+    "*.blade.php": "blade"
+  }
+}

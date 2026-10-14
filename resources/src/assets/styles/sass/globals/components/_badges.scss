@@ -1,0 +1,246 @@
+.badge {
+    font-weight: 600;
+}
+@each $name, $value in $theme-colors {
+    .badge-outline-#{$name} {
+        background: unset;
+        border: 1px solid $value;
+        color: $value;
+    }
+}
+.badge-top-container {
+    position: relative;
+    .badge {
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        border-radius: 10px;
+    }
+}
+
+// begin::badge-pill
+@each $name, $value in $theme-colors {
+    .ul-badge-pill-#{$name} {
+        background: $value;
+        border-radius: 50%;
+        width: 25px;
+        height: 18px;
+        color: #fff;
+        line-height: 20px;
+        font-size: 0.8rem;
+    }
+}
+// end-of-badge-pill
+
+
+
+@each $name, $value in $theme-colors {
+    .badge-round-#{$name} {
+        background: $value;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        color: #fff;
+        line-height: 20px;
+        justify-content: center;
+
+        &.lg{
+            // large badge
+            width:40px;
+            height: 40px;
+            line-height: 30px;
+            font-size: 1.2rem;
+    
+        }
+        &.xl{
+            width:50px;
+            height: 50px;
+            line-height: 40px;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        &.sm{
+            width: 18px;
+            height:18px;
+            line-height: 13px;
+            justify-content: center;
+            
+        }
+        &.pill{
+            width: 45px;
+            height:18px;
+            line-height: 13px;
+            border-radius:10px;
+        }
+    }
+   
+}
+
+@each $name, $value in $theme-colors {
+    .badge-dot-#{$name} {
+        height: 4px;
+        width: 4px;
+        background-color: $value;
+        border-radius: 50%;
+        display: inline-block;
+        vertical-align: middle;
+    }
+}
+
+// begin::outline
+@each $name, $value in $theme-colors {
+    .outline-round-#{$name} {
+        background: #fff;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        border: 1px solid $value;
+        color: $value;
+        line-height: 13px;
+        justify-content: center;
+    }
+}
+// end of outline 
+//ul badge square------------------------------//
+@each $name, $value in $theme-colors {
+    .badge-square-#{$name} {
+        background: $value;
+        border-radius: 20%;
+        width: 25px;
+        height: 25px;
+        color: #fff;
+        line-height: 20px;
+        text-align: center;
+
+        &.lg{
+            // large badge
+            width:40px;
+            height: 40px;
+            line-height: 30px;
+            font-size: 1.2rem;
+        }
+        &.xl{
+            width:50px;
+            height: 50px;
+            line-height: 40px;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        
+    }
+    
+   
+}
+// end of ul-badge-square------------------//
+// not working this way
+// .ul-badge-round{
+
+//     &.lg {
+//         // large badge
+//         width:40px;
+//         height: 40px;
+
+//     }
+//     .md{
+//         // medium badge
+//         width:25px;
+//         height: 25px;
+//     }
+   
+// }
+// large
+
+
+//opacity round
+.badge-round {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    line-height: 30px;
+    font-size: 1.2rem;
+
+    
+}
+@each $name, $value in $theme-colors {
+    .badge-round.badge-round-opacity-#{$name} {
+        background: lighten($value, 40%);
+        color:$value;
+        
+    }
+}
+// end-opacity-round
+
+// begin square opacity
+
+.badge-square{
+    border-radius: 20%;
+    width: 40px;
+    height: 40px;
+    line-height: 30px;
+    font-size: 1.2rem;
+}
+@each $name, $value in $theme-colors {
+    .badge-square.badge-square-opacity-#{$name} {
+        background: lighten($value, 40%);
+        color:$value;
+        
+    }
+}
+.w-badge{
+    border-radius: 0;
+    padding: 4px;
+    color: #fff;
+}
+.r-badge{
+    padding: 4px;
+}
+
+// end square opacity
+
+
+
+
+
+
+
+// Outline badges draw their label in the brand colour, which is the same problem
+// the outline buttons had: on a white card the green is 2.54:1. Same ink as the
+// buttons so a count badge and a button of the same colour agree. Dark mode is
+// excluded -- there the full-strength colours already clear AA on the card.
+body:not(.dark-theme) {
+  // Taken from the button variables rather than repeating the darken() here.
+  // These used to spell out the same percentages by hand, and the moment the
+  // button green was adjusted the badges silently kept the old one -- the very
+  // agreement this block exists to guarantee.
+  .badge-outline-primary,
+  .badge-outline-success { color: $btn-primary-fill; }
+  .badge-outline-danger  { color: $btn-danger-fill; }
+  .badge-outline-info    { color: $btn-info-fill; }
+  // 21 rather than 18: these sit on a lavender row highlight as well as on
+  // white, and 18% only reached 3.95:1 there.
+  .badge-outline-warning { color: darken($warning, 21%); }   // 4.61 on lavender, 5.67 on white
+}
+
+
+// Filled badges have exactly the problem the filled buttons had: white on the
+// raw brand colour is 2.54:1. These appear on every edit form, one per order
+// line, carrying the product name. Same fills as the buttons, so a badge and a
+// button of the same name agree on screen. Amber keeps its colour and takes
+// dark ink, for the same reason it does on .btn-warning.
+.badge-primary,
+.badge-success {
+  background-color: $btn-primary-fill;       // 5.86:1 with white
+  color: #fff;
+}
+.badge-danger {
+  background-color: $btn-danger-fill;        // 4.84:1
+  color: #fff;
+}
+.badge-info {
+  background-color: $btn-info-fill;          // 4.8:1
+  color: #fff;
+}
+.badge-warning {
+  background-color: $warning;
+  color: $gray-900;                          // 8.26:1
+}
