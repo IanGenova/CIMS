@@ -71,6 +71,14 @@
       </b-row>
 
       <b-card>
+        <b-form-input
+          v-model="searchQuery"
+          type="search"
+          class="mb-3"
+          style="max-width: 420px"
+          :placeholder="$t('Search') + ' ' + $t('ProductName') + ' / ' + $t('ProductCode') + ' / ' + $t('BatchNumber')"
+          :aria-label="$t('Search') + ' ' + $t('ProductName')"
+        />
         <div class="table-responsive">
           <table class="table table-hover">
             <thead class="bg-gray-300">
@@ -84,10 +92,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="!details.length">
+              <tr v-if="!filteredDetails.length">
                 <td colspan="6">{{ $t('NoDataAvailable') }}</td>
               </tr>
-              <tr v-for="line in details" :key="line.id">
+              <tr v-for="line in filteredDetails" :key="line.id">
                 <td>
                   <span class="text-muted">{{ line.code }}</span><br>{{ line.name }}
                 </td>
@@ -150,11 +158,23 @@ export default {
       isLoading: true,
       Processing: false,
       count: {},
+      searchQuery: "",
       details: []
     };
   },
 
   computed: {
+    filteredDetails() {
+      const query = this.searchQuery.trim().toLowerCase();
+      if (!query) return this.details;
+
+      return this.details.filter(line =>
+        [line.code, line.name, line.batch_number].some(value =>
+          String(value == null ? "" : value).toLowerCase().includes(query)
+        )
+      );
+    },
+
     /** A completed or cancelled count is history and cannot be edited. */
     frozen() {
       return this.count.status === "completed" || this.count.status === "cancelled";
