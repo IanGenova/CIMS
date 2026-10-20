@@ -617,6 +617,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     //------------------------------- Permission Groups user -----------\\
     //------------------------------------------------------------------\\
 
+    Route::get('roles/permission-catalog', 'PermissionsController@catalog');
     Route::resource('roles', 'PermissionsController');
     Route::get('roles/check/Create_page', 'PermissionsController@Check_Create_Page');
     Route::get('getRoleswithoutpaginate', 'PermissionsController@getRoleswithoutpaginate');

@@ -90,6 +90,11 @@ class UserWarehouseTest extends TestCase
 
         $this->assertFalse((bool) $juan['all_warehouses']);
         $this->assertEquals([$this->branch], $juan['warehouse_ids']);
+        $this->assertSame('probe_role', $juan['role_name']);
         $this->assertSame(['Main Warehouse', 'Branch Warehouse'], collect($response->json('warehouses'))->pluck('name')->all());
+        $this->getJson('/api/users?page=1&limit=10&SortField=id&SortType=desc&role_id=' . $this->roleId)
+            ->assertOk()->assertJsonPath('totalRows', 2);
+        $this->getJson('/api/users?page=1&limit=10&SortField=id&SortType=desc&role_id=999999')
+            ->assertOk()->assertJsonPath('totalRows', 0);
     }
 }
