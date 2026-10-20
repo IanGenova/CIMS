@@ -81,6 +81,24 @@ class UserWarehouseTest extends TestCase
     }
 
     /** @test */
+    public function editing_a_user_without_a_new_password_or_avatar_keeps_both_unchanged()
+    {
+        $this->create([])->assertSuccessful();
+        $user = DB::table('users')->where('email', 'juan@example.invalid')->first();
+
+        $this->putJson("/api/users/{$user->id}", [
+            'firstname' => 'Juan', 'lastname' => 'Santos', 'username' => 'juan',
+            'email' => 'juan@example.invalid', 'phone' => '0917', 'role' => $this->roleId,
+            'statut' => 1,
+        ])->assertSuccessful();
+
+        $updated = DB::table('users')->where('id', $user->id)->first();
+        $this->assertSame($user->password, $updated->password);
+        $this->assertSame($user->avatar, $updated->avatar);
+        $this->assertSame('Santos', $updated->lastname);
+    }
+
+    /** @test */
     public function the_users_list_says_who_is_on_which_warehouses()
     {
         $this->create(['all_warehouses' => 0, 'warehouse_ids' => [$this->branch]])->assertSuccessful();

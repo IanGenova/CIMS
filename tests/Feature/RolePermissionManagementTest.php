@@ -61,4 +61,19 @@ class RolePermissionManagementTest extends TestCase
         ])->assertStatus(422)->assertJsonValidationErrors('permissions.0');
         $this->assertSame('Warehouse Clerk', DB::table('roles')->where('id', $roleId)->value('name'));
     }
+
+    /** @test */
+    public function an_assigned_group_cannot_be_deleted_singly_or_in_a_batch()
+    {
+        $admin = $this->actAsUserWith(['permissions_delete']);
+        $unused = DB::table('roles')->insertGetId(['name' => 'Unused', 'label' => 'Unused']);
+
+        $this->deleteJson("/api/roles/{$admin->role_id}")->assertStatus(422);
+        $this->postJson('/api/roles/delete/by_selection', [
+            'selectedIds' => [$unused, $admin->role_id],
+        ])->assertStatus(422);
+
+        $this->assertNull(DB::table('roles')->where('id', $admin->role_id)->value('deleted_at'));
+        $this->assertNull(DB::table('roles')->where('id', $unused)->value('deleted_at'));
+    }
 }

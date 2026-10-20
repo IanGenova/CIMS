@@ -297,7 +297,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     //------------------- Delivery / shipment tracking ------------------\\
     //------------------------------------------------------------------\\
 
-    Route::resource('deliveries', 'DeliveryController');
+    Route::resource('deliveries', 'DeliveryController')->only(['index', 'store', 'show', 'update', 'destroy']);
     Route::get('deliveries/sales/undelivered', 'DeliveryController@undelivered');
     Route::post('deliveries/{id}/transition', 'DeliveryController@transition');
 

@@ -263,7 +263,8 @@ class UserController extends BaseController
             $user = User::findOrFail($id);
             $current = $user->password;
 
-            if ($request->NewPassword != 'null') {
+            if ($request->filled('NewPassword')
+                && ! in_array($request->NewPassword, ['null', 'undefined'], true)) {
                 if ($request->NewPassword != $current) {
                     // Same rules as the user's own change screen, and the same
                     // history, so a reset cannot quietly reinstate a password
@@ -280,7 +281,7 @@ class UserController extends BaseController
             }
 
             $currentAvatar = $user->avatar;
-            if ($request->avatar != $currentAvatar) {
+            if ($request->hasFile('avatar')) {
 
                 $image = $request->file('avatar');
                 $path = public_path() . '/images/avatar';
@@ -366,7 +367,7 @@ class UserController extends BaseController
         }
 
         $currentAvatar = $user->avatar;
-        if ($request->avatar != $currentAvatar) {
+        if ($request->hasFile('avatar')) {
 
             $image = $request->file('avatar');
             $path = public_path() . '/images/avatar';

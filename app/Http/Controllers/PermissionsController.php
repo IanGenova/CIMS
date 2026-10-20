@@ -117,8 +117,9 @@ class PermissionsController extends BaseController
     public function destroy(Request $request, $id)
     {
         $this->authorizeForUser($request->user('api'), 'delete', Role::class);
-
-        Role::whereId($id)->update([
+        $role = Role::whereNull('deleted_at')->findOrFail($id);
+        $this->assertUnassigned([$role->id]);
+        Role::whereId($role->id)->update([
             'deleted_at' => Carbon::now(),
         ]);
         return response()->json(['success' => true]);
@@ -128,16 +129,25 @@ class PermissionsController extends BaseController
 
     public function delete_by_selection(Request $request)
     {
-
         $this->authorizeForUser($request->user('api'), 'delete', Role::class);
+        $data = $request->validate(['selectedIds' => 'required|array|min:1',
+            'selectedIds.*' => 'required|integer|distinct|exists:roles,id']);
+        $ids = $data['selectedIds'];
+        $this->assertUnassigned($ids);
+        Role::whereIn('id', $ids)->whereNull('deleted_at')->update(['deleted_at' => Carbon::now()]);
+        return response()->json(['success' => true]);
+    }
 
-        $selectedIds = $request->selectedIds;
-        foreach ($selectedIds as $role_id) {
-            Role::whereId($role_id)->update([
-                'deleted_at' => Carbon::now(),
+    private function assertUnassigned(array $ids)
+    {
+        $assigned = DB::table('users')->whereNull('deleted_at')->whereIn('role_id', $ids)->exists()
+            || DB::table('role_user as ru')->join('users as u', 'u.id', '=', 'ru.user_id')
+                ->whereNull('u.deleted_at')->whereIn('ru.role_id', $ids)->exists();
+        if ($assigned) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'role' => ['Remove this role from all users before deleting it.'],
             ]);
         }
-        return response()->json(['success' => true]);
     }
 
     //----------- Check Create Page --------------\\

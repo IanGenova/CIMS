@@ -865,6 +865,9 @@ class SalesReturnController extends BaseController
             ->where('s.client_id', $request->client_id)
             ->where('s.statut', 'completed')
             ->whereNull('s.deleted_at')
+            ->when(\App\utils\WarehouseAccess::isRestricted(), function ($q) {
+                return $q->whereIn('s.warehouse_id', \App\utils\WarehouseAccess::allowedIds());
+            })
             ->orderByDesc('s.date')->orderByDesc('s.id')
             ->limit(200)
             ->get(['s.id', 's.Ref', 's.date', 's.GrandTotal', 's.warehouse_id', 'w.name as warehouse']);

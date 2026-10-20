@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\BranchStaff;
 use Tests\GrantsPermissions;
 use Tests\TestCase;
 
@@ -18,6 +19,7 @@ class SalesReturnControllerSalePickerTest extends TestCase
 {
     use RefreshDatabase;
     use GrantsPermissions;
+    use BranchStaff;
 
     /** @test */
     public function the_picker_lists_only_this_customers_completed_sales_newest_first()
@@ -41,5 +43,24 @@ class SalesReturnControllerSalePickerTest extends TestCase
         $refs = collect($this->getJson("/api/returns/sale/for_client?client_id={$juan}")->assertOk()->json('sales'))->pluck('Ref')->all();
 
         $this->assertSame(['SL_2', 'SL_1'], $refs);
+    }
+
+    /** @test */
+    public function branch_staff_cannot_select_another_branch_sale_for_a_return()
+    {
+        $this->setUpBranches();
+        foreach ([[$this->main, 'SL-MAIN'], [$this->branch, 'SL-BRANCH']] as [$warehouse, $ref]) {
+            DB::table('sales')->insert(['user_id' => $this->author, 'date' => now()->toDateString(),
+                'Ref' => $ref, 'client_id' => $this->client, 'warehouse_id' => $warehouse,
+                'GrandTotal' => 100, 'paid_amount' => 100, 'payment_statut' => 'paid',
+                'statut' => 'completed']);
+        }
+
+        $staff = $this->staffOn(['Sale_Returns_add'], [$this->main]);
+        $refs = collect($this->actingAs($staff, 'api')
+            ->getJson("/api/returns/sale/for_client?client_id={$this->client}")
+            ->assertOk()->json('sales'))->pluck('Ref')->all();
+
+        $this->assertSame(['SL-MAIN'], $refs);
     }
 }
