@@ -144,6 +144,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     Route::get("report/provider_returns", "ReportController@Returns_Provider");
     Route::get("report/ToProviders", "ReportController@ToProviders");
     Route::get("report/Sales", "ReportController@Report_Sales");
+    Route::get("report/product-sales-analytics", "ProductSalesAnalyticsController@index");
     Route::get("report/Purchases", "ReportController@Report_Purchases");
     Route::get("report/Get_last_Sales", "ReportController@Get_last_Sales");
     Route::get("report/stock_alert", "ReportController@Products_Alert");

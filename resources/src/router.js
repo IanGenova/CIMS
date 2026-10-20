@@ -789,6 +789,14 @@ const routes = [
                             )
                     },
                     {
+                        name: "product_sales_analytics",
+                        path: "product_sales_analytics",
+                        component: () =>
+                            import(/* webpackChunkName: "product_sales_analytics" */
+                                "./views/app/pages/reports/product_sales_analytics"
+                            )
+                    },
+                    {
                         name: "purchase_report",
                         path: "purchase_report",
                         component: () =>
