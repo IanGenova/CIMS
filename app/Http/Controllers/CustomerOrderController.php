@@ -78,6 +78,11 @@ class CustomerOrderController extends BaseController
                 ->where('r.owner_type', 'customer_order_line')->where('r.owner_id', $line->id)
                 ->get(['r.id', 'r.quantity', 'r.status', 'b.batch_number', 's.serial_number']);
         }
+        $order->fulfillment_events = DB::table('customer_order_fulfillment_events as e')
+            ->leftJoin('users as u', 'u.id', '=', 'e.actor_id')
+            ->where('e.customer_order_id', $id)->orderBy('e.id')
+            ->get(['e.from_status', 'e.to_status', 'e.note', 'e.shipping_carrier',
+                'e.tracking_reference', 'e.created_at', 'u.firstname', 'u.lastname']);
         return response()->json(['order' => $order]);
     }
 
@@ -274,5 +279,59 @@ class CustomerOrderController extends BaseController
         $payment = ShopPaymentService::refresh($payment, true);
         return response()->json(['status' => $payment->status,
             'reference_id' => $payment->reference_id]);
+    }
+
+    public function updateFulfillment(Request $request, $id)
+    {
+        $this->permission($request, 'Sales_edit');
+        $request->validate([
+            'status' => 'required|in:ready,dispatched,delivered,collected,exception,preparing',
+            'carrier' => 'nullable|string|max:120',
+            'tracking_reference' => 'nullable|string|max:120',
+            'note' => 'nullable|string|max:1000',
+        ]);
+        DB::transaction(function () use ($request, $id) {
+            $order = DB::table('customer_orders')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($order, 404);
+            WarehouseAccess::assertAllows($order->warehouse_id);
+            if ($order->status !== 'fulfilled' || ! $order->sale_id) {
+                $this->fail('Convert the reserved order to a sale before updating fulfillment.');
+            }
+            $allowed = [
+                'preparing' => ['ready', 'exception'],
+                'ready' => $order->fulfillment_method === 'store_pickup'
+                    ? ['collected', 'exception'] : ['dispatched', 'exception'],
+                'dispatched' => ['delivered', 'exception'],
+                'exception' => ['preparing'],
+            ];
+            $next = $request->status;
+            if (! in_array($next, $allowed[$order->fulfillment_status] ?? [], true)) {
+                $this->fail('That fulfillment step is not available from the current status.');
+            }
+            if ($next === 'exception' && ! trim((string) $request->note)) {
+                $this->fail('Record a reason for the fulfillment exception.');
+            }
+            $carrier = $next === 'dispatched' ? trim((string) $request->carrier) : $order->shipping_carrier;
+            $tracking = $next === 'dispatched' ? trim((string) $request->tracking_reference) : $order->tracking_reference;
+            DB::table('customer_orders')->where('id', $id)->update([
+                'fulfillment_status' => $next,
+                'shipping_carrier' => $carrier ?: null,
+                'tracking_reference' => $tracking ?: null,
+                'delivered_at' => in_array($next, ['delivered', 'collected'], true) ? now() : null,
+                'updated_at' => now(),
+            ]);
+            DB::table('customer_order_fulfillment_events')->insert([
+                'customer_order_id' => $id,
+                'from_status' => $order->fulfillment_status,
+                'to_status' => $next,
+                'shipping_carrier' => $carrier ?: null,
+                'tracking_reference' => $tracking ?: null,
+                'note' => trim((string) $request->note) ?: null,
+                'actor_id' => $request->user('api')->id,
+                'created_at' => now(),
+            ]);
+        }, 5);
+        CustomerOrderService::notifyStatus($id);
+        return response()->json(['success' => true]);
     }
 }

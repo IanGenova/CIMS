@@ -42,11 +42,28 @@
         Payment needs reconciliation in Xendit. Reference {{ selected.shop_payment.reference_id }}. Keep stock reserved until the charge is confirmed or safely resolved.
       </b-alert>
       <p>Expected supply {{ selected.expected_supply_date || 'not set' }} · Promise {{ selected.promise_date || 'not set' }}</p>
+      <p v-if="selected.source_channel === 'web'">{{ selected.fulfillment_method === 'store_pickup' ? 'Store pickup' : 'Delivery' }} · Fulfillment {{ selected.fulfillment_status ? selected.fulfillment_status.replace(/_/g, ' ') : 'awaiting sale' }}</p>
       <p class="text-muted">{{ selected.notes || 'No notes' }}</p>
       <div v-for="line in selected.lines" :key="line.id" class="border rounded p-3 mb-2">
         <strong>{{ line.code }} · {{ line.name }}</strong> · {{ Number(line.quantity) }} base units · <span :class="line.status === 'pending_stock' ? 'text-warning' : 'text-success'">{{ line.status === 'pending_stock' ? 'Pending stock' : line.status }}</span>
         <div v-for="source in line.reservations" :key="source.id" class="small text-muted">{{ source.status }} · {{ Number(source.quantity) }} · {{ source.batch_number ? 'lot ' + source.batch_number : (source.serial_number || 'ordinary stock') }}</div>
         <b-button v-if="line.status === 'pending_stock' && can('Sales_edit')" size="sm" variant="primary" :disabled="busy" class="mt-1" @click="allocate(line)">Reserve now</b-button>
+      </div>
+      <div v-if="selected.fulfillment_status" class="border rounded p-3 mb-3">
+        <h5>Fulfillment progress</h5>
+        <p v-if="selected.tracking_reference">{{ selected.shipping_carrier || 'Carrier' }} · {{ selected.tracking_reference }}</p>
+        <div v-if="fulfillmentOptions.length && can('Sales_edit')">
+          <b-row>
+            <b-col md="4"><b-form-group label="Next step"><b-form-select v-model="fulfillment.status" :options="fulfillmentOptions" /></b-form-group></b-col>
+            <b-col v-if="fulfillment.status === 'dispatched'" md="4"><b-form-group label="Carrier"><b-form-input v-model="fulfillment.carrier" maxlength="120" /></b-form-group></b-col>
+            <b-col v-if="fulfillment.status === 'dispatched'" md="4"><b-form-group label="Tracking reference"><b-form-input v-model="fulfillment.tracking_reference" maxlength="120" /></b-form-group></b-col>
+          </b-row>
+          <b-form-group label="Note / exception reason"><b-form-input v-model="fulfillment.note" maxlength="1000" /></b-form-group>
+          <b-button variant="primary" :disabled="busy || !fulfillment.status" @click="updateFulfillment">Save fulfillment step</b-button>
+        </div>
+        <div v-for="(event, index) in selected.fulfillment_events" :key="index" class="small border-top pt-2 mt-2">
+          {{ event.created_at }} · {{ event.to_status.replace(/_/g, ' ') }} · {{ [event.firstname, event.lastname].filter(Boolean).join(' ') || 'System' }}<span v-if="event.note"> · {{ event.note }}</span>
+        </div>
       </div>
       <router-link v-if="selected.status === 'reserved' && can('Sales_add') && (selected.checkout_payment_method !== 'xendit' || (selected.shop_payment && selected.shop_payment.status === 'paid'))" class="btn btn-success mr-2" :to="{ name: 'store_sale', query: { customer_order_id: selected.id } }">Fulfill as sale</router-link>
       <b-button v-if="selected.shop_payment && ['pending','review'].includes(selected.shop_payment.status) && can('Sales_edit')" variant="outline-primary" class="mr-2" :disabled="busy" @click="verifyPayment">Verify Xendit payment</b-button>
@@ -64,6 +81,7 @@ export default {
     return {
       error: "", busy: false, rows: [], selected: null,
       clients: [], warehouses: [], products: [], variants: [],
+      fulfillment: { status: null, carrier: "", tracking_reference: "", note: "" },
       form: { client_id: null, warehouse_id: null, source_channel: "staff", allow_preorder: true,
         expected_supply_date: null, promise_date: null, deposit_amount: 0, notes: "",
         lines: [{ product_id: null, product_variant_id: null, quantity: 1 }] }
@@ -73,7 +91,16 @@ export default {
     ...mapGetters(["currentUserPermissions"]),
     clientOptions() { return [{ value: null, text: "Choose customer" }].concat(this.clients.map(c => ({ value: c.id, text: c.name }))); },
     warehouseOptions() { return [{ value: null, text: "Choose branch" }].concat(this.warehouses.map(w => ({ value: w.id, text: w.name }))); },
-    productOptions() { return [{ value: null, text: "Choose product" }].concat(this.products.map(p => ({ value: p.id, text: p.code + " · " + p.name }))); }
+    productOptions() { return [{ value: null, text: "Choose product" }].concat(this.products.map(p => ({ value: p.id, text: p.code + " · " + p.name }))); },
+    fulfillmentOptions() {
+      if (!this.selected) return [];
+      const status = this.selected.fulfillment_status;
+      const steps = status === "preparing" ? ["ready", "exception"]
+        : status === "ready" ? (this.selected.fulfillment_method === "store_pickup" ? ["collected", "exception"] : ["dispatched", "exception"])
+        : status === "dispatched" ? ["delivered", "exception"]
+        : status === "exception" ? ["preparing"] : [];
+      return [{ value: null, text: "Choose next step" }].concat(steps.map(step => ({ value: step, text: step.charAt(0).toUpperCase() + step.slice(1) })));
+    }
   },
   methods: {
     can(permission) { return this.currentUserPermissions && this.currentUserPermissions.includes(permission); },
@@ -88,6 +115,7 @@ export default {
       this.error = "";
       axios.get("customer_orders/" + id).then(({ data }) => {
         this.selected = data.order;
+        this.fulfillment = { status: null, carrier: data.order.shipping_carrier || "", tracking_reference: data.order.tracking_reference || "", note: "" };
         this.$nextTick(() => { const el = document.getElementById("order-detail"); if (el) el.scrollIntoView({ behavior: "smooth" }); });
       }).catch(this.problem);
     },
@@ -114,6 +142,12 @@ export default {
     verifyPayment() {
       this.busy = true; this.error = "";
       axios.post("customer_orders/" + this.selected.id + "/verify_payment").then(() => {
+        this.refresh(); this.open(this.selected.id);
+      }).catch(this.problem).finally(() => { this.busy = false; });
+    },
+    updateFulfillment() {
+      this.busy = true; this.error = "";
+      axios.post("customer_orders/" + this.selected.id + "/fulfillment", this.fulfillment).then(() => {
         this.refresh(); this.open(this.selected.id);
       }).catch(this.problem).finally(() => { this.busy = false; });
     }

@@ -132,9 +132,17 @@ class CustomerOrderService
     {
         $changed = DB::table('customer_orders')->where('id', $orderId)->where('status', 'reserved')
             ->whereNull('sale_id')->update([
-                'status' => 'fulfilled', 'sale_id' => $saleId, 'updated_at' => now(),
+                'status' => 'fulfilled', 'sale_id' => $saleId,
+                'fulfillment_status' => 'preparing', 'updated_at' => now(),
             ]);
-        if ($changed) self::notifyStatus($orderId);
+        if ($changed) {
+            DB::table('customer_order_fulfillment_events')->insert([
+                'customer_order_id' => $orderId, 'from_status' => null,
+                'to_status' => 'preparing', 'actor_id' => auth('api')->id(),
+                'created_at' => now(),
+            ]);
+            self::notifyStatus($orderId);
+        }
     }
 
     /** Queue a signed delivery; the website can retry or query status by ID. */
@@ -150,6 +158,10 @@ class CustomerOrderService
             'external_order_id' => $order->external_order_id,
             'warehouse_id' => $order->warehouse_id,
             'status' => $order->status, 'sale_id' => $order->sale_id,
+            'fulfillment_method' => $order->fulfillment_method,
+            'fulfillment_status' => $order->fulfillment_status,
+            'shipping_carrier' => $order->shipping_carrier,
+            'tracking_reference' => $order->tracking_reference,
             'updated_at' => $order->updated_at,
             'lines' => $lines,
         ]);

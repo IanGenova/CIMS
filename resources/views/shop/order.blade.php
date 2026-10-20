@@ -6,6 +6,9 @@
     <div class="receipt-lines">@foreach($lines as $line)<div><span><strong>{{ $line->name }}@if($line->variant) · {{ $line->variant }}@endif</strong><small>{{ $line->code }} · {{ number_format($line->display_quantity, 2) }} {{ $line->unit }} · {{ str_replace('_',' ',$line->status) }}</small></span><strong>₱{{ number_format($line->display_quantity * $line->unit_price, 2) }}</strong></div>@endforeach</div>
     <div class="receipt-total"><span>Order total</span><strong>₱{{ number_format($order->quoted_total, 2) }}</strong></div>
     <div class="receipt-meta"><span>Payment choice</span><strong>{{ ucwords(str_replace('_',' ', $order->checkout_payment_method)) }}</strong></div>
+    <div class="receipt-meta"><span>Receiving method</span><strong>{{ $order->fulfillment_method === 'store_pickup' ? 'Store pickup' : 'Delivery' }}</strong></div>
+    @if($order->fulfillment_status)<div class="receipt-meta"><span>Fulfillment progress</span><strong>{{ ucwords(str_replace('_',' ', $order->fulfillment_status)) }}</strong></div>@endif
+    @if($order->tracking_reference)<div class="receipt-meta"><span>Carrier / tracking</span><strong>{{ $order->shipping_carrier ?: 'Carrier to confirm' }} · {{ $order->tracking_reference }}</strong></div>@endif
     @if($order->checkout_payment_method === 'xendit')
         <div class="receipt-meta"><span>Online payment</span><strong>{{ $payment ? ($payment->refund_status ? 'Refund ' . strtolower($payment->refund_status) : ucfirst($payment->status)) : 'Not started' }}</strong></div>
         @if(in_array($order->status, ['reserved'], true) && (!$payment || in_array($payment->status, ['pending','failed'], true)))<form action="/shop/order/{{ $token }}/pay" method="post">@csrf<button class="button button-dark full" type="submit">{{ $payment && $payment->status === 'pending' ? 'Continue payment' : 'Pay securely with Xendit' }} →</button></form>@endif

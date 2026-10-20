@@ -99,6 +99,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     Route::get('customer_orders/{id}', 'CustomerOrderController@show')->where('id', '[0-9]+');
     Route::post('customer_orders/{id}/cancel', 'CustomerOrderController@cancel')->where('id', '[0-9]+');
     Route::post('customer_orders/{id}/verify_payment', 'CustomerOrderController@verifyPayment')->where('id', '[0-9]+');
+    Route::post('customer_orders/{id}/fulfillment', 'CustomerOrderController@updateFulfillment')->where('id', '[0-9]+');
     Route::post('customer_order_lines/{id}/allocate', 'CustomerOrderController@allocate')->where('id', '[0-9]+');
     Route::delete('goods_receipts/{id}', 'GoodsReceiptController@destroy')->where('id', '[0-9]+');
 

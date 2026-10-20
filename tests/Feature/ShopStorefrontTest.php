@@ -100,6 +100,21 @@ class ShopStorefrontTest extends TestCase
     }
 
     /** @test */
+    public function store_pickup_records_the_method_and_rejects_cash_on_delivery()
+    {
+        $f = $this->fixture();
+        $pickup = $this->checkout($f['product'], 1,
+            'b8e7f375-7cd2-42b4-a5c9-6da3a8302339');
+        $pickup['fulfillment_method'] = 'store_pickup';
+        $pickup['address'] = '';
+        $this->postJson('/shop/checkout', $pickup)->assertStatus(422);
+        $pickup['payment_method'] = 'pay_in_store';
+        $id = $this->postJson('/shop/checkout', $pickup)->assertCreated()->json('id');
+        $this->assertSame('store_pickup', DB::table('customer_orders')
+            ->where('id', $id)->value('fulfillment_method'));
+    }
+
+    /** @test */
     public function xendit_payment_is_only_paid_after_provider_capture_is_verified()
     {
         $f = $this->fixture();
@@ -109,7 +124,8 @@ class ShopStorefrontTest extends TestCase
         $payload = $this->checkout($f['product'], 1,
             'b8e7f375-7cd2-42b4-a5c9-6da3a8302336');
         $payload['payment_method'] = 'xendit';
-        $orderId = $this->postJson('/shop/checkout', $payload)->assertCreated()->json('id');
+        $orderResponse = $this->postJson('/shop/checkout', $payload)->assertCreated();
+        $orderId = $orderResponse->json('id');
         $mock = new MockHandler([
             new Response(200, [], json_encode(['payment_session_id' => 'ps-test-123',
                 'payment_link_url' => 'https://dev.xen.to/test',
@@ -154,6 +170,20 @@ class ShopStorefrontTest extends TestCase
             $this->assertSame('paid', DB::table('sales')->where('id', $saleId)->value('payment_statut'));
             $this->assertEquals(120, DB::table('payment_sales')->where('sale_id', $saleId)->value('montant'));
             $this->assertTrue(XenditCheckout::saleHoldsXenditMoney($saleId));
+            $this->postJson('/api/customer_orders/' . $orderId . '/fulfillment',
+                ['status' => 'ready'])->assertOk();
+            $this->postJson('/api/customer_orders/' . $orderId . '/fulfillment',
+                ['status' => 'delivered'])->assertStatus(422);
+            $this->postJson('/api/customer_orders/' . $orderId . '/fulfillment',
+                ['status' => 'dispatched', 'carrier' => 'Test carrier',
+                    'tracking_reference' => 'TEST-123'])->assertOk();
+            $this->postJson('/api/customer_orders/' . $orderId . '/fulfillment',
+                ['status' => 'delivered'])->assertOk();
+            $this->assertSame('delivered', DB::table('customer_orders')
+                ->where('id', $orderId)->value('fulfillment_status'));
+            $this->assertEquals(4, DB::table('customer_order_fulfillment_events')
+                ->where('customer_order_id', $orderId)->count());
+            $this->get($orderResponse->json('url'))->assertOk()->assertSee('TEST-123');
             \App\utils\ShopPaymentService::refund(DB::table('shop_payment_sessions')->find($payment->id));
             $this->assertSame('PENDING', DB::table('shop_payment_sessions')->where('id', $payment->id)->value('refund_status'));
             $this->assertFalse(XenditCheckout::saleHoldsXenditMoney($saleId));

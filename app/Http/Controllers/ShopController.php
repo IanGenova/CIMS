@@ -112,10 +112,11 @@ class ShopController extends Controller
             'name' => 'required|string|min:2|max:192',
             'email' => 'required|email|max:192',
             'phone' => 'required|string|min:7|max:40',
-            'address' => 'required|string|min:5|max:500',
+            'address' => 'required_unless:fulfillment_method,store_pickup|nullable|string|min:5|max:500',
             'city' => 'required|string|min:2|max:100',
             'notes' => 'nullable|string|max:1000',
             'payment_method' => 'required|in:cash_on_delivery,pay_in_store,xendit',
+            'fulfillment_method' => 'nullable|in:delivery,store_pickup',
             'allow_preorder' => 'nullable|boolean',
             'items' => 'required|array|min:1|max:30',
             'items.*.product_id' => 'required|integer',
@@ -126,13 +127,18 @@ class ShopController extends Controller
         if ($request->payment_method === 'xendit' && ! XenditCheckout::configured()) {
             $this->fail('Online payment is not configured yet. Choose cash on delivery or pay in store.');
         }
+        $fulfillmentMethod = $request->fulfillment_method ?: 'delivery';
+        if ($fulfillmentMethod === 'store_pickup' && $request->payment_method === 'cash_on_delivery') {
+            $this->fail('Store pickup cannot use cash on delivery. Choose pay in store or online payment.');
+        }
         $external = 'SHOP-' . $key;
         $publicToken = hash_hmac('sha256', 'shop-order:' . $key, config('app.key'));
         $payload = [
             'name' => trim($request->name), 'email' => strtolower(trim($request->email)),
-            'phone' => trim($request->phone), 'address' => trim($request->address),
+            'phone' => trim($request->phone), 'address' => trim((string) $request->address),
             'city' => trim($request->city), 'notes' => trim((string) $request->notes),
             'payment_method' => $request->payment_method,
+            'fulfillment_method' => $fulfillmentMethod,
             'allow_preorder' => $request->boolean('allow_preorder'),
             'items' => $request->items,
         ];
@@ -149,7 +155,7 @@ class ShopController extends Controller
                 $clientId = DB::table('clients')->insertGetId([
                     'code' => DocumentSequence::nextCode('clients', 'code', 1),
                     'name' => $payload['name'], 'email' => $payload['email'],
-                    'phone' => $payload['phone'], 'adresse' => $payload['address'],
+                    'phone' => $payload['phone'], 'adresse' => $payload['address'] ?: 'Store pickup',
                     'city' => $payload['city'], 'country' => 'Philippines',
                     'created_at' => now(), 'updated_at' => now(),
                 ]);
@@ -159,6 +165,7 @@ class ShopController extends Controller
                     'source_channel' => 'web', 'external_order_id' => $external,
                     'payload_hash' => $hash, 'public_token_hash' => hash('sha256', $publicToken),
                     'status' => 'pending_stock', 'checkout_payment_method' => $payload['payment_method'],
+                    'fulfillment_method' => $payload['fulfillment_method'],
                     'notes' => $payload['notes'], 'created_by' => null,
                     'created_at' => now(), 'updated_at' => now(),
                 ]);
