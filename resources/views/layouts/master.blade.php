@@ -35,6 +35,6 @@
     <div id="app">
     </div>
 
-    <script src="/js/main.min.js?v=3.3.4"></script>
+    <script src="/js/main.min.js?v={{ filemtime(public_path('js/main.min.js')) }}"></script>
   </body>
 </html>
