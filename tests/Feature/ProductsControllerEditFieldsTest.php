@@ -30,13 +30,14 @@ class ProductsControllerEditFieldsTest extends TestCase
         $id = DB::table('products')->insertGetId([
             'code' => 'MED-001', 'Type_barcode' => 'CODE128', 'name' => 'Amoxicillin 500mg', 'cost' => 5, 'price' => 9,
             'category_id' => $category, 'unit_id' => $unit, 'unit_sale_id' => $unit, 'unit_purchase_id' => $unit,
-            'TaxNet' => 0, 'tax_method' => '2', 'has_batches' => 1, 'expiry_alert_days' => 90,
+            'TaxNet' => 0, 'tax_method' => '2', 'has_batches' => 1, 'requires_qc' => 1, 'expiry_alert_days' => 90,
             'vat_class' => 'vat_exempt', 'sc_pwd_eligible' => 0, 'warranty_months' => null,
         ]);
 
         $product = $this->getJson("/api/Products/{$id}/edit")->assertOk()->json('product');
 
         $this->assertTrue($product['has_batches']);
+        $this->assertTrue($product['requires_qc']);
         $this->assertEquals(90, $product['expiry_alert_days']);
         $this->assertEquals('vat_exempt', $product['vat_class']);
         $this->assertFalse($product['sc_pwd_eligible']);

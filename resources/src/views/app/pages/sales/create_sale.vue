@@ -1,6 +1,7 @@
 <template>
   <div class="main-content">
     <breadcumb :page="$t('AddSale')" :folder="$t('ListSales')"/>
+    <b-alert v-if="customerOrderId" show variant="info">Fulfilling reserved customer order {{ customerOrderRef }}. Products and quantities must match the reservation.</b-alert>
     <div v-if="isLoading" class="loading_page spinner spinner-primary mr-3"></div>
 
     <validation-observer ref="create_sale" v-if="!isLoading">
@@ -440,6 +441,8 @@ export default {
       client: {},
       products: [],
       details: [],
+      customerOrderId: null,
+      customerOrderRef: "",
       detail: {},
       sales: [],
       payment: {
@@ -824,7 +827,7 @@ export default {
           this.product.quantity = 1;
         }
         this.product.product_variant_id = result.product_variant_id;
-        this.Get_Product_Details(result.id);
+        return this.Get_Product_Details(result.id);
       }
 
       this.search_input= '';
@@ -1104,6 +1107,7 @@ export default {
               shipping: this.sale.shipping,
               GrandTotal: this.GrandTotal,
               details: this.details,
+              customer_order_id: this.customerOrderId,
               payment: this.payment,
               amount: this.safeAmount(this.payment.amount),
               received_amount: this.safeAmount(this.payment.received_amount),
@@ -1147,7 +1151,7 @@ export default {
     //---------------------------------Get Product Details ------------------------\\
 
     Get_Product_Details(product_id) {
-      axios.get("Products/" + product_id).then(response => {
+      return axios.get("Products/" + product_id).then(response => {
         this.product.discount = 0;
         this.product.DiscountNet = 0;
         this.product.discount_Method = "2";
@@ -1167,6 +1171,36 @@ export default {
       });
     },
 
+    async loadCustomerOrder(id) {
+      try {
+        const response = await axios.get("customer_orders/" + id);
+        const order = response.data.order;
+        if (order.status !== "reserved" || order.lines.some(line => line.status !== "reserved")) {
+          throw new Error("This order still has pending stock or was already fulfilled.");
+        }
+        this.sale.client_id = order.client_id;
+        this.sale.warehouse_id = order.warehouse_id;
+        const products = await axios.get("Products/Warehouse/" + order.warehouse_id + "?stock=1");
+        this.products = products.data;
+        this.details = [];
+        for (const line of order.lines) {
+          const result = this.products.find(product => Number(product.id) === Number(line.product_id)
+            && Number(product.product_variant_id || 0) === Number(line.product_variant_id || 0));
+          if (!result) throw new Error("A reserved product is unavailable in this warehouse's sale catalog.");
+          await this.SearchProduct(result);
+          const detail = this.details[this.details.length - 1];
+          detail.quantity = Number(line.quantity) / Number(detail.unit_factor || 1);
+          detail.customer_order_line_id = line.id;
+          detail.serials = line.reservations.filter(r => r.status === "active" && r.serial_number).map(r => r.serial_number);
+        }
+        this.customerOrderId = order.id;
+        this.customerOrderRef = order.Ref;
+        this.Calcul_Total();
+      } catch (error) {
+        this.makeToast("danger", error.message || this.serverMessage(error), this.$t("Failed"));
+      }
+    },
+
     //---------------------------------------Get Elements ------------------------------\\
     GetElements() {
       axios
@@ -1182,6 +1216,7 @@ export default {
           }
           this.xendit_ready = !!response.data.xendit_ready;
           this.isLoading = false;
+          if (this.$route.query.customer_order_id) this.loadCustomerOrder(this.$route.query.customer_order_id);
         })
         .catch(response => {
           setTimeout(() => {

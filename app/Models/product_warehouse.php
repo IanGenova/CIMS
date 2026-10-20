@@ -66,6 +66,16 @@ class product_warehouse extends Model
                 ]);
             }
 
+            // A promise remains physically on hand until the owning order or
+            // transfer consumes it. Guard every stock-changing path, including
+            // older controllers which do not know about reservations.
+            if ($stock->isDirty('qte') && (float) $stock->qte + 0.000001 <
+                \App\utils\ReservationService::quantity($stock->warehouse_id, $stock->product_id, $stock->product_variant_id)) {
+                throw ValidationException::withMessages([
+                    'stock' => ['This movement would consume stock reserved for another order or branch.'],
+                ]);
+            }
+
             $stock->guardBatchTrackedProduct();
         });
 

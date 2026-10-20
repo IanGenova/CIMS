@@ -102,6 +102,10 @@ class SerialService
                 $where = DB::table('warehouses')->where('id', $row->warehouse_id)->value('name') ?: 'another branch';
                 self::fail(sprintf('Serial number %s of %s is at %s, not this branch.', $serial, $name, $where));
             }
+            if ($status === 'in_stock' && in_array($verb, ['sold', 'moved', 'removed'], true)
+                && ReservationService::serialReserved($row->id)) {
+                self::fail(sprintf('Serial number %s is reserved for another order or branch.', $serial));
+            }
         }
 
         return $rows->values();
@@ -109,7 +113,7 @@ class SerialService
 
     // ------------------------------------------------------------------ in
 
-    public static function receive($productId, $variantId, $warehouseId, $serials, $baseQty, $refType, $refId)
+    public static function receive($productId, $variantId, $warehouseId, $serials, $baseQty, $refType, $refId, $sourceReceiptDetailId = null, $initialStatus = 'in_stock')
     {
         $list = self::counted($productId, $serials, $baseQty);
         $existing = DB::table('product_serials')->where('product_id', $productId)
@@ -122,10 +126,36 @@ class SerialService
         foreach ($list as $serial) {
             $id = DB::table('product_serials')->insertGetId([
                 'product_id' => $productId, 'product_variant_id' => $variantId, 'serial_number' => $serial,
-                'status' => 'in_stock', 'warehouse_id' => $warehouseId, 'received_at' => now(),
+                'status' => $initialStatus, 'warehouse_id' => $warehouseId, 'received_at' => now(),
+                'source_receipt_detail_id' => $sourceReceiptDetailId,
                 'created_at' => now(), 'updated_at' => now(),
             ]);
             self::log($id, 'received', $warehouseId, $refType, $refId);
+        }
+    }
+
+    /** Inspect all units on one receipt line; only named passed units become sellable. */
+    public static function inspectReceipt($receiptLineId, $acceptedSerials, $acceptedBaseQty, $receiptId)
+    {
+        $rows = DB::table('product_serials')->where('source_receipt_detail_id', $receiptLineId)
+            ->lockForUpdate()->get();
+        if ($rows->isEmpty() || $rows->contains(function ($row) { return $row->status !== 'qc_hold'; })) {
+            self::fail('The serials on this receipt are not all awaiting QC.');
+        }
+
+        $accepted = self::counted($rows->first()->product_id, $acceptedSerials, $acceptedBaseQty);
+        $selected = array_map('strtoupper', $accepted);
+        $known = $rows->map(function ($row) { return strtoupper($row->serial_number); })->all();
+        if (array_diff($selected, $known)) {
+            self::fail('A passed serial number does not belong to this receipt line.');
+        }
+
+        foreach ($rows as $row) {
+            $passed = in_array(strtoupper($row->serial_number), $selected, true);
+            DB::table('product_serials')->where('id', $row->id)->update([
+                'status' => $passed ? 'in_stock' : 'qc_rejected', 'updated_at' => now(),
+            ]);
+            self::log($row->id, $passed ? 'qc_passed' : 'qc_failed', $row->warehouse_id, 'GoodsReceipt', $receiptId);
         }
     }
 
@@ -289,7 +319,15 @@ class SerialService
         if (! $ids) {
             return 0;
         }
-        $moved = DB::table('product_serials')->whereIn('id', $ids)->where('status', '!=', 'in_stock')->value('serial_number');
+        $moved = DB::table('product_serials')->whereIn('id', $ids)
+            ->whereNotIn('status', ['in_stock', 'qc_hold', 'qc_rejected'])->value('serial_number');
+        if (! $moved) {
+            $moved = DB::table('product_serial_events as e')
+                ->join('product_serials as s', 's.id', '=', 'e.product_serial_id')
+                ->whereIn('e.product_serial_id', $ids)
+                ->whereNotIn('e.event', ['received', 'qc_passed', 'qc_failed'])
+                ->value('s.serial_number');
+        }
         if ($moved) {
             self::fail(sprintf('Serial number %s from this document has already been sold or moved, so it cannot be undone.', $moved));
         }
@@ -324,6 +362,19 @@ class SerialService
 
         return $rows->map(function ($r) {
             $r->under_warranty = $r->warranty_until !== null && $r->warranty_until >= now()->toDateString();
+            $r->source = DB::table('product_serials as s')
+                ->leftJoin('goods_receipt_details as d', 'd.id', '=', 's.source_receipt_detail_id')
+                ->leftJoin('goods_receipts as gr', 'gr.id', '=', 'd.goods_receipt_id')
+                ->leftJoin('purchases as po', 'po.id', '=', 'gr.purchase_id')
+                ->leftJoin('providers as supplier', 'supplier.id', '=', 'po.provider_id')
+                ->leftJoin('users as inspector', 'inspector.id', '=', 'd.qc_decided_by')
+                ->where('s.id', $r->id)
+                ->whereNotNull('d.id')
+                ->first(['d.id as goods_receipt_detail_id', 'gr.id as goods_receipt_id',
+                    'gr.Ref as goods_receipt_ref', 'gr.date as goods_receipt_date',
+                    'd.purchase_detail_id', 'po.id as purchase_id', 'po.Ref as purchase_ref',
+                    'supplier.name as supplier', 'd.qc_status', 'd.qc_passed_qte', 'd.qc_failed_qte',
+                    'inspector.username as qc_decider', 'd.qc_decided_at', 'd.qc_notes']);
             $r->history = DB::table('product_serial_events as e')
                 ->leftJoin('warehouses as w', 'w.id', '=', 'e.warehouse_id')
                 ->leftJoin('users as u', 'u.id', '=', 'e.user_id')

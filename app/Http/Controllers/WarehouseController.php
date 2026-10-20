@@ -9,6 +9,7 @@ use App\Models\Warehouse;
 use Carbon\Carbon;
 use DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class WarehouseController extends Controller
 {
@@ -33,6 +34,7 @@ class WarehouseController extends Controller
             ->where(function ($query) use ($request) {
                 return $query->when($request->filled('search'), function ($query) use ($request) {
                     return $query->where('name', 'LIKE', "%{$request->search}%")
+                        ->orWhere('code', 'LIKE', "%{$request->search}%")
                         ->orWhere('mobile', 'LIKE', "%{$request->search}%")
                         ->orWhere('country', 'LIKE', "%{$request->search}%")
                         ->orWhere('city', 'LIKE', "%{$request->search}%")
@@ -58,20 +60,36 @@ class WarehouseController extends Controller
     {
         $this->authorizeForUser($request->user('api'), 'create', Warehouse::class);
 
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code', '')))]);
         request()->validate([
             'name' => 'required',
+            'code' => ['nullable', 'regex:/^[A-Z0-9_-]+$/', 'max:32', Rule::unique('warehouses', 'code')],
+            'site_type' => 'nullable|in:central_warehouse,main_store,branch,warehouse',
         ]);
 
         \DB::transaction(function () use ($request) {
 
             $Warehouse = new Warehouse;
             $Warehouse->name = $request['name'];
+            $Warehouse->code = $request->code ?: null;
+            $Warehouse->site_type = $request->input('site_type') ?: 'warehouse';
             $Warehouse->mobile = $request['mobile'];
             $Warehouse->country = $request['country'];
             $Warehouse->city = $request['city'];
             $Warehouse->zip = $request['zip'];
             $Warehouse->email = $request['email'];
             $Warehouse->save();
+
+            if (! $Warehouse->code) {
+                $baseCode = 'WH-' . $Warehouse->id;
+                $code = $baseCode;
+                $suffix = 2;
+                while (DB::table('warehouses')->where('code', $code)->exists()) {
+                    $code = $baseCode . '-' . $suffix++;
+                }
+                $Warehouse->code = $code;
+                $Warehouse->save();
+            }
 
             $products = Product::where('deleted_at', '=', null)
                 ->pluck('id')
@@ -123,18 +141,25 @@ class WarehouseController extends Controller
     {
         $this->authorizeForUser($request->user('api'), 'update', Warehouse::class);
 
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code', '')))]);
         request()->validate([
             'name' => 'required',
+            'code' => ['nullable', 'regex:/^[A-Z0-9_-]+$/', 'max:32', Rule::unique('warehouses', 'code')->ignore($id)],
+            'site_type' => 'nullable|in:central_warehouse,main_store,branch,warehouse',
         ]);
 
-        Warehouse::whereId($id)->update([
+        $warehouse = Warehouse::findOrFail($id);
+        $warehouse->fill([
             'name' => $request['name'],
+            'code' => $request->code ?: $warehouse->code,
+            'site_type' => $request->input('site_type') ?: $warehouse->site_type,
             'mobile' => $request['mobile'],
             'country' => $request['country'],
             'city' => $request['city'],
             'zip' => $request['zip'],
             'email' => $request['email'],
         ]);
+        $warehouse->save();
         return response()->json(['success' => true]);
     }
 

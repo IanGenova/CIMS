@@ -69,6 +69,7 @@
               <tr v-for="(line, i) in details" :key="line.purchase_detail_id">
                 <td>
                   <span class="text-muted">{{ line.code }}</span><br>{{ line.name }}
+                  <div v-if="line.requires_qc" class="text-warning small">QC hold: received units require approval before sale</div>
                 </td>
                 <td class="text-right">{{ line.ordered_qte }}</td>
                 <td class="text-right">{{ line.outstanding }}</td>

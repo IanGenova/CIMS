@@ -189,6 +189,8 @@ class ProductsController extends BaseController
                 $Product->stock_alert = $request['stock_alert'] ? $request['stock_alert'] : 0;
                 $Product->is_variant = $request['is_variant'] == 'true' ? 1 : 0;
                 $Product->has_batches = filter_var($request['has_batches'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                $Product->requires_qc = filter_var($request['requires_qc'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                $Product->web_published = filter_var($request['web_published'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
                 $Product->expiry_alert_days = is_numeric($request['expiry_alert_days'])
                     ? (int) $request['expiry_alert_days'] : 30;
                 self::applyKind($Product, $request);
@@ -295,6 +297,7 @@ class ProductsController extends BaseController
             $Product->is_service = 1;
             $Product->has_batches = 0;
             $Product->has_serials = 0;
+            $Product->requires_qc = 0;
             $Product->stock_alert = 0;
         } else {
             $Product->is_service = 0;
@@ -347,6 +350,17 @@ class ProductsController extends BaseController
                     ->where('deleted_at', '=', null)
                     ->lockForUpdate()
                     ->first();
+                if ($Product && DB::table('goods_receipt_details')
+                    ->where('product_id', $Product->id)->where('qc_status', 'pending')->exists()) {
+                    foreach (['has_batches', 'has_serials', 'is_service'] as $trackingField) {
+                        if ($request->has($trackingField)
+                            && (bool) filter_var($request[$trackingField], FILTER_VALIDATE_BOOLEAN) !== (bool) $Product->$trackingField) {
+                            throw ValidationException::withMessages([
+                                $trackingField => ['Finish QC on this product’s held receipts before changing its stock tracking or kind.'],
+                            ]);
+                        }
+                    }
+                }
                 if ($Product && $request->filled('version') && ! hash_equals(self::rowVersion($id), (string) $request['version'])) {
                     throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
                         'message' => 'Someone else changed this product while you had it open. Reload it, then make your change again.',
@@ -398,6 +412,12 @@ class ProductsController extends BaseController
                     \App\utils\BatchService::assertCanSetTracking($Product, $wantBatches);
                     $Product->has_batches = $wantBatches ? 1 : 0;
                     \App\utils\BatchService::forget($Product->id);
+                }
+                if ($request->has('requires_qc')) {
+                    $Product->requires_qc = filter_var($request['requires_qc'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                }
+                if ($request->has('web_published')) {
+                    $Product->web_published = filter_var($request['web_published'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
                 }
                 // Only meaningful while batches are tracked, but kept either way
                 // so turning tracking off and on again does not lose the setting.
@@ -1138,6 +1158,8 @@ class ProductsController extends BaseController
         // Everything the edit screen saves must come back, or saving sends its
         // blank defaults and switches these off (ProductsControllerEditFieldsTest).
         $item['has_batches'] = (bool) $Product->has_batches;
+        $item['requires_qc'] = (bool) $Product->requires_qc;
+        $item['web_published'] = (bool) $Product->web_published;
         $item['expiry_alert_days'] = $Product->expiry_alert_days ?? 30;
         $item['vat_class'] = $Product->vat_class ?: 'vatable';
         $item['sc_pwd_eligible'] = $Product->sc_pwd_eligible === null ? true : (bool) $Product->sc_pwd_eligible;

@@ -79,6 +79,8 @@
               <th class="text-right">{{ $t('Ordered') }}</th>
               <th class="text-right">{{ $t('Received') }}</th>
               <th class="text-right">{{ $t('Rejected') }}</th>
+              <th>QC status</th>
+              <th class="text-right">Passed / Failed</th>
             </tr>
           </thead>
           <tbody>
@@ -87,9 +89,51 @@
               <td class="text-right">{{ l.ordered_qte }}</td>
               <td class="text-right text-success">{{ l.received_qte }}</td>
               <td class="text-right text-danger">{{ l.rejected_qte }}</td>
+              <td>{{ l.qc_status }}<small v-if="l.qc_decider" class="d-block text-muted">{{ l.qc_decider }} · {{ l.qc_decided_at }}</small><small v-if="l.qc_notes" class="d-block text-muted">{{ l.qc_notes }}</small></td>
+              <td class="text-right">{{ l.qc_passed_qte }} / {{ l.qc_failed_qte }}</td>
             </tr>
           </tbody>
         </table>
+
+        <div v-for="l in detail.details" :key="'qc'+l.id" v-if="l.qc_status === 'pending'" class="border rounded p-3 mb-3">
+          <h6>Inspect {{ l.code }} — {{ l.name }}</h6>
+          <p class="text-muted mb-2">{{ l.received_qte }} units are held out of sellable stock.</p>
+          <template v-if="currentUserPermissions && currentUserPermissions.includes('goods_receipt_qc_approve')">
+            <b-row>
+              <b-col md="3"><b-form-group label="Passed"><b-form-input type="number" min="0" step="any" v-model.number="l.qc_passed_input" :disabled="l.qc_serials.length > 0" /></b-form-group></b-col>
+              <b-col md="3"><b-form-group label="Failed"><b-form-input type="number" min="0" step="any" v-model.number="l.qc_failed_input" :disabled="l.qc_serials.length > 0" /></b-form-group></b-col>
+              <b-col md="6"><b-form-group label="Inspection notes / failure reason"><b-form-input v-model="l.qc_notes_input" /></b-form-group></b-col>
+            </b-row>
+            <div v-if="l.qc_serials.length" class="mb-2">
+              <div class="small text-muted mb-1">Select the serials that passed. Unselected units fail QC.</div>
+              <b-form-checkbox v-for="serial in l.qc_serials" :key="serial" v-model="l.accepted_serials" :value="serial" @change="syncSerialQc(l)">{{ serial }}</b-form-checkbox>
+            </div>
+            <b-button variant="success" :disabled="qcProcessing" @click="Decide_Qc(l)">Record QC decision</b-button>
+          </template>
+          <p v-else class="text-muted mb-0">Waiting for a user with QC approver permission.</p>
+        </div>
+        <div v-for="l in detail.details" :key="'disposition'+l.id" v-if="Number(l.qc_failed_qte) > 0" class="border rounded p-3 mb-3">
+          <h6>Failed goods disposition · {{ l.code }} — {{ l.name }}</h6>
+          <p class="text-muted">{{ l.qc_failed_qte }} failed · {{ l.qc_disposition_remaining }} awaiting a disposition request. Failed goods are outside sellable stock.</p>
+          <div v-for="d in l.qc_dispositions" :key="d.id" class="border-bottom py-2">
+            <strong>{{ d.action === 'supplier_return' ? 'Supplier return' : 'Write-off' }}</strong> · {{ Number(d.quantity) }} · {{ d.status }}
+            <div class="small">Requested by {{ d.requester }}: {{ d.reason }}<span v-if="d.approver"> · Decided by {{ d.approver }}<span v-if="d.decision_reason">: {{ d.decision_reason }}</span></span></div>
+            <div v-if="d.status === 'pending' && currentUserPermissions && currentUserPermissions.includes('goods_receipt_qc_disposition_approve')" class="mt-1">
+              <b-button size="sm" variant="success" :disabled="qcProcessing" @click="Decide_Disposition(d, 'approve')">Approve</b-button>
+              <b-button size="sm" variant="outline-danger" :disabled="qcProcessing" @click="Decide_Disposition(d, 'reject')">Reject</b-button>
+            </div>
+          </div>
+          <b-row v-if="l.qc_disposition_remaining > 0 && currentUserPermissions && currentUserPermissions.includes('goods_receipt_qc_disposition_request')" class="mt-2">
+            <b-col md="3"><b-form-group label="Action"><b-form-select v-model="l.disposition_action" :options="[{ value: 'supplier_return', text: 'Return to supplier' }, { value: 'write_off', text: 'Write off' }]" /></b-form-group></b-col>
+            <b-col md="2"><b-form-group label="Quantity"><b-form-input type="number" min="0.000001" step="any" :max="l.qc_disposition_remaining" v-model.number="l.disposition_quantity" /></b-form-group></b-col>
+            <b-col md="5"><b-form-group label="Reason"><b-form-input v-model="l.disposition_reason" /></b-form-group></b-col>
+            <b-col md="2" class="d-flex align-items-center"><b-button variant="primary" :disabled="qcProcessing" @click="Request_Disposition(l)">Request</b-button></b-col>
+          </b-row>
+          <div v-if="l.qc_failed_serials.length && l.qc_disposition_remaining > 0" class="small mb-2">
+            <div>Select the failed serial numbers in this request:</div>
+            <b-form-checkbox v-for="serial in l.qc_failed_serials" :key="serial" v-model="l.disposition_serials" :value="serial" @change="syncDispositionSerials(l)">{{ serial }}</b-form-checkbox>
+          </div>
+        </div>
       </div>
     </b-modal>
   </div>
@@ -112,7 +156,8 @@ export default {
       totalRows: "",
       search: "",
       receipts: [],
-      detail: null
+      detail: null,
+      qcProcessing: false
     };
   },
 
@@ -160,8 +205,78 @@ export default {
     Show(row) {
       axios.get("goods_receipts/" + row.id).then(response => {
         this.detail = response.data;
+        this.detail.details.forEach(l => {
+          this.$set(l, "qc_passed_input", l.received_qte);
+          this.$set(l, "qc_failed_input", 0);
+          this.$set(l, "qc_notes_input", "");
+          this.$set(l, "accepted_serials", l.qc_serials.slice());
+          this.$set(l, "disposition_action", "supplier_return");
+          this.$set(l, "disposition_quantity", l.qc_disposition_remaining);
+          this.$set(l, "disposition_reason", "");
+          this.$set(l, "disposition_serials", []);
+        });
         this.$bvModal.show("grn_detail");
       });
+    },
+
+    syncSerialQc(line) {
+      this.$nextTick(() => {
+        line.qc_passed_input = line.accepted_serials.length / line.base_units_per;
+        line.qc_failed_input = line.received_qte - line.qc_passed_input;
+      });
+    },
+
+    Decide_Qc(line) {
+      this.qcProcessing = true;
+      axios.post("goods_receipts/" + this.detail.goods_receipt.id + "/qc", {
+        receipt_detail_id: line.id,
+        passed_qte: line.qc_passed_input,
+        failed_qte: line.qc_failed_input,
+        notes: line.qc_notes_input,
+        accepted_serials: line.accepted_serials
+      }).then(() => {
+        const receiptId = this.detail.goods_receipt.id;
+        this.Show({ id: receiptId });
+        this.Get_Receipts(this.serverParams.page);
+        this.makeToast("success", "QC decision recorded", this.$t("Success"));
+      }).catch(error => {
+        const data = error.response && error.response.data;
+        const first = data && data.errors ? Object.values(data.errors)[0] : null;
+        this.makeToast("danger", (first && first[0]) || (data && data.message) || this.$t("InvalidData"), this.$t("Failed"));
+      }).finally(() => { this.qcProcessing = false; });
+    },
+
+    Request_Disposition(line) {
+      this.qcProcessing = true;
+      axios.post("goods_receipts/" + this.detail.goods_receipt.id + "/qc_dispositions", {
+        receipt_detail_id: line.id, action: line.disposition_action,
+        quantity: line.disposition_quantity, reason: line.disposition_reason,
+        serial_numbers: line.disposition_serials
+      }).then(() => {
+        this.Show({ id: this.detail.goods_receipt.id });
+        this.makeToast("success", "Disposition sent for manager approval", this.$t("Success"));
+      }).catch(this.showQcError).finally(() => { this.qcProcessing = false; });
+    },
+
+    syncDispositionSerials(line) {
+      this.$nextTick(() => { line.disposition_quantity = line.disposition_serials.length / line.base_units_per; });
+    },
+
+    Decide_Disposition(disposition, decision) {
+      const reason = decision === "reject" ? window.prompt("Reason for rejection") : "";
+      if (decision === "reject" && !reason) return;
+      this.qcProcessing = true;
+      axios.post("qc_dispositions/" + disposition.id + "/decision", { decision, reason })
+        .then(() => {
+          this.Show({ id: this.detail.goods_receipt.id });
+          this.makeToast("success", "Disposition decision recorded", this.$t("Success"));
+        }).catch(this.showQcError).finally(() => { this.qcProcessing = false; });
+    },
+
+    showQcError(error) {
+      const data = error.response && error.response.data;
+      const first = data && data.errors ? Object.values(data.errors)[0] : null;
+      this.makeToast("danger", (first && first[0]) || (data && data.message) || this.$t("InvalidData"), this.$t("Failed"));
     },
 
     /**

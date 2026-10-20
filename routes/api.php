@@ -55,6 +55,9 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     Route::get('batches/expiring', 'BatchController@expiring');
     Route::get('batches/verify', 'BatchController@verify');
     Route::get('batches/{id}/trace', 'BatchController@trace')->where('id', '[0-9]+');
+    Route::get('traceability/search', 'TraceabilityController@search');
+    Route::get('traceability/overview', 'TraceabilityController@overview');
+    Route::get('traceability/exceptions', 'TraceabilityController@exceptions');
     Route::put('batches/tracking/{id}', 'BatchController@setTracking')->where('id', '[0-9]+');
 
     //-------------------------- Stock Take / Cycle Count ---------------------------
@@ -74,6 +77,29 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     Route::get('goods_receipts/create', 'GoodsReceiptController@create');
     Route::post('goods_receipts', 'GoodsReceiptController@store');
     Route::get('goods_receipts/{id}', 'GoodsReceiptController@show')->where('id', '[0-9]+');
+    Route::post('goods_receipts/{id}/qc', 'GoodsReceiptController@decideQc')->where('id', '[0-9]+');
+    Route::get('qc_dispositions', 'QcDispositionController@index');
+    Route::post('goods_receipts/{id}/qc_dispositions', 'QcDispositionController@store')->where('id', '[0-9]+');
+    Route::post('qc_dispositions/{id}/decision', 'QcDispositionController@decide')->where('id', '[0-9]+');
+    Route::get('branch_requests', 'BranchRequestController@index');
+    Route::get('branch_requests/options', 'BranchRequestController@options');
+    Route::post('branch_requests', 'BranchRequestController@store');
+    Route::get('branch_requests/{id}', 'BranchRequestController@show')->where('id', '[0-9]+');
+    Route::post('branch_requests/{id}/allocate', 'BranchRequestController@allocate')->where('id', '[0-9]+');
+    Route::post('branch_requests/{id}/cancel', 'BranchRequestController@cancel')->where('id', '[0-9]+');
+    Route::post('branch_shipments/{id}/dispatch', 'BranchRequestController@dispatchShipment')->where('id', '[0-9]+');
+    Route::post('branch_shipments/{id}/receive', 'BranchRequestController@receive')->where('id', '[0-9]+');
+    Route::post('branch_shipments/{id}/qc', 'BranchRequestController@decideReturnQc')->where('id', '[0-9]+');
+    Route::get('catalog/availability', 'CustomerOrderController@catalog');
+    Route::get('customer_orders', 'CustomerOrderController@index');
+    Route::get('shop/settings', 'ShopSettingsController@show');
+    Route::put('shop/settings', 'ShopSettingsController@update');
+    Route::get('customer_orders/options', 'CustomerOrderController@options');
+    Route::post('customer_orders', 'CustomerOrderController@store');
+    Route::get('customer_orders/{id}', 'CustomerOrderController@show')->where('id', '[0-9]+');
+    Route::post('customer_orders/{id}/cancel', 'CustomerOrderController@cancel')->where('id', '[0-9]+');
+    Route::post('customer_orders/{id}/verify_payment', 'CustomerOrderController@verifyPayment')->where('id', '[0-9]+');
+    Route::post('customer_order_lines/{id}/allocate', 'CustomerOrderController@allocate')->where('id', '[0-9]+');
     Route::delete('goods_receipts/{id}', 'GoodsReceiptController@destroy')->where('id', '[0-9]+');
 
     //-------------------------- Purchase Approval ---------------------------

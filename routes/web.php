@@ -2,6 +2,14 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+
+// Public storefront; each order is protected by an unguessable receipt token.
+Route::get('/shop', 'ShopController@index');
+Route::get('/shop/catalog', 'ShopController@catalog');
+Route::post('/shop/checkout', 'ShopController@checkout')->middleware('throttle:20,1');
+Route::get('/shop/order/{token}', 'ShopController@order');
+Route::post('/shop/order/{token}/pay', 'ShopController@pay')->middleware('throttle:10,1');
+Route::post('/shop/order/{token}/cancel', 'ShopController@cancel')->middleware('throttle:10,1');
 /*
 |--------------------------------------------------------------------------
 | Web Routes

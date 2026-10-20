@@ -15,12 +15,14 @@ class ProductBatch extends Model
     protected $fillable = [
         'product_id', 'product_variant_id', 'batch_number',
         'manufacture_date', 'expiry_date', 'provider_id', 'cost', 'notes',
+        'source_receipt_detail_id',
     ];
 
     protected $casts = [
         'product_id' => 'integer',
         'product_variant_id' => 'integer',
         'provider_id' => 'integer',
+        'source_receipt_detail_id' => 'integer',
         'cost' => 'double',
         'manufacture_date' => 'date',
         'expiry_date' => 'date',
@@ -34,6 +36,11 @@ class ProductBatch extends Model
     public function provider()
     {
         return $this->belongsTo('App\Models\Provider');
+    }
+
+    public function sourceReceiptDetail()
+    {
+        return $this->belongsTo('App\Models\GoodsReceiptDetail', 'source_receipt_detail_id');
     }
 
     public function stock()

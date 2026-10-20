@@ -33,9 +33,10 @@
           <strong>{{ unit.product }}</strong>
           <span class="text-muted">({{ unit.product_code }})</span>
         </p>
+        <p v-if="unit.source" class="mb-2"><strong>QC:</strong> {{ unit.source.qc_status }}<span v-if="unit.source.qc_decider"> · {{ unit.source.qc_decider }} · {{ unit.source.qc_decided_at }}</span></p>
 
         <div class="d-flex flex-wrap serial-facts mb-3">
-          <span class="badge" :class="statusClass(unit.status)">{{ $t('SerialStatus_' + unit.status) }}</span>
+          <span class="badge" :class="statusClass(unit.status)">{{ serialStatus(unit.status) }}</span>
           <span v-if="unit.status === 'in_stock' && unit.warehouse">{{ unit.warehouse }}</span>
           <span v-if="unit.customer">{{ $t('Customer') }}: {{ unit.customer }}</span>
           <span v-if="unit.sale_ref">
@@ -48,6 +49,14 @@
           </span>
           <span v-else-if="unit.status === 'sold'" class="text-muted">{{ $t('NoWarranty') }}</span>
         </div>
+
+        <p class="mb-2">
+          <strong>Receipt source:</strong>
+          <span v-if="unit.source">
+            {{ unit.source.goods_receipt_ref }} · {{ unit.source.purchase_ref }} · {{ unit.source.supplier || 'Supplier unknown' }}
+          </span>
+          <span v-else class="text-muted">Unknown / historical</span>
+        </p>
 
         <h6>{{ $t('SerialHistory') }}</h6>
         <div class="table-responsive">
@@ -103,10 +112,17 @@ export default {
     statusClass(status) {
       return {
         in_stock: "badge-success",
+        qc_hold: "badge-warning",
+        qc_rejected: "badge-danger",
         sold: "badge-primary",
         written_off: "badge-danger",
         returned_to_supplier: "badge-warning"
       }[status] || "badge-secondary";
+    },
+    serialStatus(status) {
+      if (status === "qc_hold") return "Awaiting QC";
+      if (status === "qc_rejected") return "Failed QC";
+      return this.$t("SerialStatus_" + status);
     },
     eventLabel(event) {
       const text = String(event || "").replace(/_/g, " ");

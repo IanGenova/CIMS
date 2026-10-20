@@ -81,6 +81,23 @@
               </validation-provider>
             </b-col>
 
+            <b-col md="6">
+              <b-form-group label="Location code">
+                <b-form-input
+                  v-model.trim="warehouse.code"
+                  maxlength="32"
+                  placeholder="Generated if left blank"
+                />
+                <small class="text-muted">Letters, numbers, hyphens and underscores. Keep this code stable for trace reports.</small>
+              </b-form-group>
+            </b-col>
+
+            <b-col md="6">
+              <b-form-group label="Location type">
+                <b-form-select v-model="warehouse.site_type" :options="siteTypes" />
+              </b-form-group>
+            </b-col>
+
             <!-- Phone -->
             <b-col md="6">
               <validation-provider
@@ -205,7 +222,9 @@ export default {
       editmode: false,
       warehouse: {
         id: "",
+        code: "",
         name: "",
+        site_type: "warehouse",
         mobile: "",
         email: "",
         zip: "",
@@ -216,11 +235,32 @@ export default {
   },
 
   computed: {
+    siteTypes() {
+      return [
+        { value: "central_warehouse", text: "Central warehouse" },
+        { value: "main_store", text: "Main store" },
+        { value: "branch", text: "Branch" },
+        { value: "warehouse", text: "Other warehouse" }
+      ];
+    },
+
     columns() {
       return [
         {
+          label: "Code",
+          field: "code",
+          tdClass: "text-left",
+          thClass: "text-left"
+        },
+        {
           label: this.$t("Name"),
           field: "name",
+          tdClass: "text-left",
+          thClass: "text-left"
+        },
+        {
+          label: "Location type",
+          field: "site_type",
           tdClass: "text-left",
           thClass: "text-left"
         },
@@ -359,7 +399,7 @@ export default {
     Edit_Warehouse(warehouse) {
       this.Get_Warehouses(this.serverParams.page);
       this.reset_Form();
-      this.warehouse = warehouse;
+      this.warehouse = Object.assign({}, warehouse);
       this.editmode = true;
       this.$bvModal.show("New_Warehouse");
     },
@@ -406,6 +446,8 @@ export default {
       axios
         .post("warehouses", {
           name: this.warehouse.name,
+          code: this.warehouse.code,
+          site_type: this.warehouse.site_type,
           mobile: this.warehouse.mobile,
           email: this.warehouse.email,
           zip: this.warehouse.zip,
@@ -433,6 +475,8 @@ export default {
       axios
         .put("warehouses/" + this.warehouse.id, {
           name: this.warehouse.name,
+          code: this.warehouse.code,
+          site_type: this.warehouse.site_type,
           mobile: this.warehouse.mobile,
           email: this.warehouse.email,
           zip: this.warehouse.zip,
@@ -459,7 +503,9 @@ export default {
     reset_Form() {
       this.warehouse = {
         id: "",
+        code: "",
         name: "",
+        site_type: "warehouse",
         mobile: "",
         email: "",
         zip: "",

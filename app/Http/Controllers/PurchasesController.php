@@ -168,6 +168,7 @@ class PurchasesController extends BaseController
         // Serial-tracked goods arrive through a goods receipt, which names
         // each unit; a purchase saved straight as "received" cannot.
         if ($request['statut'] === 'received') {
+            \App\utils\QcService::refuseDirectReceipt(array_column((array) $request['details'], 'product_id'));
             \App\utils\SerialService::refuseIfTracked(array_column((array) $request['details'], 'product_id'),
                 'a purchase saved as "received"', 'Save the purchase as "ordered" and receive it with a Goods Receipt, which records each serial number.');
         }
@@ -338,6 +339,7 @@ class PurchasesController extends BaseController
         // Serial-tracked goods arrive through a goods receipt, which names
         // each unit; a purchase saved straight as "received" cannot.
         if ($request['statut'] === 'received') {
+            \App\utils\QcService::refuseDirectReceipt(array_column((array) $request['details'], 'product_id'));
             \App\utils\SerialService::refuseIfTracked(array_column((array) $request['details'], 'product_id'),
                 'a purchase saved as "received"', 'Save the purchase as "ordered" and receive it with a Goods Receipt, which records each serial number.');
         }

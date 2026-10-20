@@ -300,6 +300,12 @@
               <span class="item-name">{{$t('Batches')}}</span>
             </router-link>
           </li>
+          <li class="nav-item" v-if="currentUserPermissions && currentUserPermissions.includes('products_view') && currentUser && currentUser.all_warehouses">
+            <router-link tag="a" class to="/app/products/traceability">
+              <i class="nav-icon i-Magnifi-Glass1"></i>
+              <span class="item-name">Trace Explorer</span>
+            </router-link>
+          </li>
           <li
             class="nav-item"
             v-if="currentUserPermissions && currentUserPermissions.includes('products_view')"
@@ -384,6 +390,12 @@
             <router-link tag="a" class to="/app/transfers/list">
               <i class="nav-icon i-Files"></i>
               <span class="item-name">{{$t('ListTransfers')}}</span>
+            </router-link>
+          </li>
+          <li class="nav-item" v-if="currentUserPermissions && currentUserPermissions.includes('transfer_view')">
+            <router-link tag="a" class to="/app/transfers/branch_requests">
+              <i class="nav-icon i-Files"></i>
+              <span class="item-name">Branch Requests</span>
             </router-link>
           </li>
         </ul>
@@ -497,6 +509,12 @@
             <router-link tag="a" class to="/app/sales/list">
               <i class="nav-icon i-Files"></i>
               <span class="item-name">{{$t('ListSales')}}</span>
+            </router-link>
+          </li>
+          <li class="nav-item" v-if="currentUserPermissions && currentUserPermissions.includes('Sales_view')">
+            <router-link tag="a" class to="/app/sales/customer_orders">
+              <i class="nav-icon i-Files"></i>
+              <span class="item-name">Customer Orders & Pre-orders</span>
             </router-link>
           </li>
           <li
@@ -641,6 +659,12 @@
             <router-link tag="a" class to="/app/settings/Warehouses">
               <i class="nav-icon i-Clothing-Store"></i>
               <span class="item-name">{{$t('Warehouses')}}</span>
+            </router-link>
+          </li>
+          <li class="nav-item" v-if="currentUserPermissions && currentUserPermissions.includes('setting_system')">
+            <router-link tag="a" class to="/app/settings/OnlineShop">
+              <i class="nav-icon i-Shopping-Bag"></i>
+              <span class="item-name">Online Shop</span>
             </router-link>
           </li>
           <li
@@ -1005,7 +1029,7 @@ export default {
   },
 
   computed: {
-    ...mapGetters(["getSideBarToggleProperties", "currentUserPermissions"])
+    ...mapGetters(["getSideBarToggleProperties", "currentUserPermissions", "currentUser"])
   },
 
   methods: {

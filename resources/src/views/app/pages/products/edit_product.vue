@@ -268,6 +268,21 @@
                     </b-form-group>
                   </b-col>
 
+                  <b-col md="6" v-if="!product.is_service">
+                    <b-form-group label="Quality inspection">
+                      <b-form-checkbox v-model="product.requires_qc" switch>
+                        Hold new receipts until a QC approver releases them
+                      </b-form-checkbox>
+                    </b-form-group>
+                  </b-col>
+                  <b-col md="6" v-if="!product.is_service">
+                    <b-form-group label="Online storefront">
+                      <b-form-checkbox v-model="product.web_published" switch>
+                        Show this product on the public shop after the shop is enabled
+                      </b-form-checkbox>
+                    </b-form-group>
+                  </b-col>
+
                   <!-- Goods or a service; the server refuses the change while
                        any stock is on hand. -->
                   <b-col md="6">
@@ -401,6 +416,8 @@ export default {
         unit_purchase_id: "",
         stock_alert: "",
         has_batches: false,
+        requires_qc: false,
+        web_published: false,
         expiry_alert_days: 30,
         is_service: false,
         has_serials: false,

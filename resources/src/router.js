@@ -74,6 +74,12 @@ const routes = [
                             import(/* webpackChunkName: "batches_20261014" */"./views/app/pages/products/batches")
                     },
                     {
+                        path: "traceability",
+                        name: "traceability",
+                        component: () =>
+                            import(/* webpackChunkName: "traceability" */"./views/app/pages/products/traceability")
+                    },
+                    {
                         path: "serials",
                         name: "serial_lookup",
                         component: () =>
@@ -132,6 +138,11 @@ const routes = [
                         path: "list",
                         component: () =>
                             import(/* webpackChunkName: "index_transfer" */"./views/app/pages/transfers/index_transfer")
+                    },
+                    {
+                        name: "branch_requests",
+                        path: "branch_requests",
+                        component: () => import(/* webpackChunkName: "branch_requests" */"./views/app/pages/transfers/branch_requests")
                     },
                     {
                         name: "store_transfer",
@@ -334,6 +345,11 @@ const routes = [
                         path: "list",
                         component: () =>
                             import(/* webpackChunkName: "index_sales" */"./views/app/pages/sales/index_sale")
+                    },
+                    {
+                        name: "customer_orders",
+                        path: "customer_orders",
+                        component: () => import(/* webpackChunkName: "customer_orders" */"./views/app/pages/sales/customer_orders")
                     },
                     {
                         name: "store_sale",
@@ -620,6 +636,11 @@ const routes = [
                     },
 
                     // System Settings
+                    {
+                        name: "online_shop_settings",
+                        path: "OnlineShop",
+                        component: () => import(/* webpackChunkName: "online_shop_settings" */"./views/app/pages/settings/online_shop")
+                    },
                     {
                         name: "system_settings",
                         path: "System_settings",

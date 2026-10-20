@@ -109,16 +109,33 @@ class BatchService
         );
     }
 
-    /**
-     * Find or create a lot. Batch numbers are unique per product, so receiving
-     * the same lot twice adds to it rather than duplicating it.
-     */
+    /** A receipt line owns its own stock identity, even if a printed lot repeats. */
     public static function resolveBatch(array $data)
     {
-        $batch = ProductBatch::where('product_id', $data['product_id'])
+        if (! empty($data['source_receipt_detail_id'])) {
+            $sourceId = (int) $data['source_receipt_detail_id'];
+            $existing = ProductBatch::where('source_receipt_detail_id', $sourceId)->first();
+            if ($existing) {
+                return $existing;
+            }
+
+            return ProductBatch::create(array_merge($data, [
+                'source_receipt_detail_id' => $sourceId,
+            ]));
+        }
+
+        $matches = ProductBatch::where('product_id', $data['product_id'])
             ->where('product_variant_id', $data['product_variant_id'] ?? null)
             ->where('batch_number', $data['batch_number'])
-            ->first();
+            ->limit(2)->get();
+
+        if ($matches->count() > 1) {
+            throw ValidationException::withMessages([
+                'batch' => ['This printed batch number belongs to several receipts. Select the exact batch ID to preserve its source.'],
+            ]);
+        }
+
+        $batch = $matches->first();
 
         if ($batch) {
             // Fill in dates if the first receipt did not carry them.
@@ -233,7 +250,11 @@ class BatchService
                 continue;
             }
 
-            $take = min((float) $row->qte, $remaining);
+            $free = max(0, (float) $row->qte - ReservationService::batchQuantity($row->product_batch_id, $warehouseId));
+            $take = min($free, $remaining);
+            if ($take <= 0) {
+                continue;
+            }
 
             // A locking read: a plain one inside the transaction returns the
             // snapshot from its first read, so a sale that committed meanwhile
@@ -303,7 +324,7 @@ class BatchService
             ->lockForUpdate()
             ->first();
 
-        $available = $stock ? (float) $stock->qte : 0.0;
+        $available = $stock ? (float) $stock->qte - ReservationService::batchQuantity($batchId, $warehouseId) : 0.0;
 
         if ($available + 0.000001 < $baseQty) {
             throw ValidationException::withMessages([
@@ -316,7 +337,9 @@ class BatchService
             ]);
         }
 
-        $stock->qte = $available - $baseQty;
+        // Reservations reduce what this caller may take, but they are still
+        // physically on hand. Deduct only the quantity actually issued.
+        $stock->qte = (float) $stock->qte - $baseQty;
         $stock->save();
 
         self::log($batchId, $warehouseId, -1 * $baseQty, $movementType, $refType, $refId);
@@ -469,6 +492,11 @@ class BatchService
                 $stock->qte = 0;
             }
 
+            if ((float) $row->net > 0 && (float) $stock->qte + 0.000001 < (float) $row->net) {
+                throw ValidationException::withMessages([
+                    'batch' => ['This receipt lot has already moved or been sold. Reverse those movements before cancelling its receipt.'],
+                ]);
+            }
             $stock->qte = (float) $stock->qte - (float) $row->net;
             $stock->save();
 

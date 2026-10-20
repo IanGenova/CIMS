@@ -65,7 +65,9 @@ return [
              */
             'timezone' => env('DB_TIMEZONE', '+08:00'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                (defined('Pdo\\Mysql::ATTR_SSL_CA')
+                    ? constant('Pdo\\Mysql::ATTR_SSL_CA')
+                    : constant('PDO::MYSQL_ATTR_SSL_CA')) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
