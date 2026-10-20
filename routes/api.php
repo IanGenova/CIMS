@@ -81,6 +81,11 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     Route::get('qc_dispositions', 'QcDispositionController@index');
     Route::post('goods_receipts/{id}/qc_dispositions', 'QcDispositionController@store')->where('id', '[0-9]+');
     Route::post('qc_dispositions/{id}/decision', 'QcDispositionController@decide')->where('id', '[0-9]+');
+    Route::post('qc_dispositions/{id}/execute', 'QcDispositionController@execute')->where('id', '[0-9]+');
+    Route::post('qc_custody/{id}/move', 'QcDispositionController@moveCustody')->where('id', '[0-9]+');
+    Route::post('branch_shipment_items/{id}/qc_dispositions', 'BranchReturnQcDispositionController@store')->where('id', '[0-9]+');
+    Route::post('branch_return_qc_dispositions/{id}/decision', 'BranchReturnQcDispositionController@decide')->where('id', '[0-9]+');
+    Route::post('branch_return_qc_dispositions/{id}/execute', 'BranchReturnQcDispositionController@execute')->where('id', '[0-9]+');
     Route::get('branch_requests', 'BranchRequestController@index');
     Route::get('branch_requests/options', 'BranchRequestController@options');
     Route::post('branch_requests', 'BranchRequestController@store');

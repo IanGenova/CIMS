@@ -396,16 +396,32 @@ class GoodsReceiptController extends BaseController
                 'qc_dispositions' => \DB::table('goods_receipt_qc_dispositions as q')
                     ->leftJoin('users as requester', 'requester.id', '=', 'q.requested_by')
                     ->leftJoin('users as approver', 'approver.id', '=', 'q.decided_by')
+                    ->leftJoin('users as executor', 'executor.id', '=', 'q.executed_by')
                     ->where('q.goods_receipt_detail_id', $line->id)->orderBy('q.id')
                     ->get(['q.id', 'q.action', 'q.quantity', 'q.status', 'q.reason',
                         'q.serial_numbers',
                         'q.requested_by', 'requester.username as requester',
                         'approver.username as approver', 'q.decision_reason',
-                        'q.created_at', 'q.decided_at']),
+                        'q.created_at', 'q.decided_at', 'q.execution_reference',
+                        'q.execution_note', 'q.executed_at',
+                        'executor.username as executor']),
+                'qc_custody' => \DB::table('qc_rejected_custody')
+                    ->where('source_type', 'goods_receipt_detail')->where('source_id', $line->id)
+                    ->orderBy('id')->get(['id', 'original_quantity', 'remaining_quantity',
+                        'location', 'status', 'product_serial_id'])
+                    ->map(function ($custody) {
+                        $custody->events = \DB::table('qc_custody_events as e')
+                            ->leftJoin('users as u', 'u.id', '=', 'e.actor_id')
+                            ->where('e.custody_id', $custody->id)->orderBy('e.id')
+                            ->get(['e.event', 'e.quantity', 'e.from_location', 'e.to_location',
+                                'e.reference_type', 'e.reference_id', 'e.note',
+                                'e.created_at', 'u.username as actor']);
+                        return $custody;
+                    }),
                 'qc_disposition_remaining' => max(0, (float) $line->qc_failed_qte -
                     (float) \DB::table('goods_receipt_qc_dispositions')
                         ->where('goods_receipt_detail_id', $line->id)
-                        ->whereIn('status', ['pending', 'approved'])->sum('quantity')),
+                        ->whereIn('status', ['pending', 'approved', 'executed'])->sum('quantity')),
                 'qc_failed_serials' => SerialService::isTracked($line->product_id)
                     ? \DB::table('product_serials')->where('source_receipt_detail_id', $line->id)
                         ->where('status', 'qc_rejected')->orderBy('id')->pluck('serial_number')->all()
@@ -444,6 +460,7 @@ class GoodsReceiptController extends BaseController
             'notes' => 'nullable|string|max:5000',
             'accepted_serials' => 'nullable|array',
             'accepted_serials.*' => 'string|max:100',
+            'hold_location' => 'nullable|string|max:120',
         ]);
 
         \DB::transaction(function () use ($request, $id) {
@@ -466,6 +483,11 @@ class GoodsReceiptController extends BaseController
             if ($failed > 0 && ! $request->filled('notes')) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'notes' => ['Record a reason for goods that fail QC.'],
+                ]);
+            }
+            if ($failed > 0 && ! trim((string) $request->hold_location)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'hold_location' => ['Record the physical QC hold location for failed goods.'],
                 ]);
             }
 
@@ -500,6 +522,17 @@ class GoodsReceiptController extends BaseController
                 'qc_notes' => $request->notes,
             ]);
             $line->save();
+            if ($failed > 0) {
+                $serialIds = SerialService::isTracked($line->product_id)
+                    ? \DB::table('product_serials')->where('source_receipt_detail_id', $line->id)
+                        ->where('status', 'qc_rejected')->pluck('id')->all() : [];
+                $batchId = BatchService::isTracked($line->product_id)
+                    ? ProductBatch::where('source_receipt_detail_id', $line->id)->value('id') : null;
+                \App\utils\QcCustodyService::recordFailure('goods_receipt_detail', $line->id,
+                    $receipt->warehouse_id, $line->product_id, $line->product_variant_id,
+                    $batchId, $serialIds, $this->toBaseQty($purchaseDetail, $failed),
+                    trim($request->hold_location), Auth::id(), $request->notes);
+            }
 
             if (! $receipt->details()->where('qc_status', 'pending')->exists()) {
                 $receipt->status = 'received';
@@ -526,6 +559,14 @@ class GoodsReceiptController extends BaseController
             ->where('d.goods_receipt_id', $id)->exists()) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'qc' => ['This receipt has a disposition history. Keep it for audit and correct stock through a separate document.'],
+            ]);
+        }
+        if (\DB::table('qc_rejected_custody as c')
+            ->join('goods_receipt_details as d', 'd.id', '=', 'c.source_id')
+            ->where('c.source_type', 'goods_receipt_detail')
+            ->where('d.goods_receipt_id', $id)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'qc' => ['This receipt has rejected-goods custody history. Keep it for audit and correct stock through a separate document.'],
             ]);
         }
 

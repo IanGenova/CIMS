@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\utils\SerialService;
+use App\utils\QcCustodyService;
 use App\utils\WarehouseAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +62,7 @@ class QcDispositionController extends BaseController
             }
             $claimed = (float) DB::table('goods_receipt_qc_dispositions')
                 ->where('goods_receipt_detail_id', $line->id)
-                ->whereIn('status', ['pending', 'approved'])->sum('quantity');
+                ->whereIn('status', ['pending', 'approved', 'executed'])->sum('quantity');
             if ($claimed + (float) $request->quantity > (float) $line->qc_failed_qte + 0.000001) {
                 throw ValidationException::withMessages(['quantity' => ['Only the remaining failed quantity may be disposed.']]);
             }
@@ -91,7 +92,7 @@ class QcDispositionController extends BaseController
                 }
                 $claimedSerials = DB::table('goods_receipt_qc_dispositions')
                     ->where('goods_receipt_detail_id', $line->id)
-                    ->whereIn('status', ['pending', 'approved'])->pluck('serial_numbers')
+                    ->whereIn('status', ['pending', 'approved', 'executed'])->pluck('serial_numbers')
                     ->flatMap(fn ($json) => json_decode($json ?: '[]', true) ?: [])->all();
                 if (array_intersect($serialNumbers, $claimedSerials)) {
                     throw ValidationException::withMessages(['serial_numbers' => ['A serial is already in another disposition.']]);
@@ -142,28 +143,95 @@ class QcDispositionController extends BaseController
                 'decision_reason' => $request->reason,
                 'updated_at' => now(),
             ]);
-            if ($request->decision === 'approve' && $row->serial_numbers) {
-                $numbers = json_decode($row->serial_numbers, true) ?: [];
-                $status = $row->action === 'supplier_return' ? 'returned_to_supplier' : 'written_off';
+        }, 5);
+        return response()->json(['success' => true]);
+    }
+
+    public function execute(Request $request, $id)
+    {
+        $this->requirePermission($request, 'goods_receipt_qc_disposition_execute');
+        $request->validate([
+            'execution_reference' => 'required|string|min:3|max:120',
+            'execution_note' => 'required|string|min:3|max:5000',
+        ]);
+        DB::transaction(function () use ($request, $id) {
+            $row = DB::table('goods_receipt_qc_dispositions')->where('id', $id)
+                ->lockForUpdate()->first();
+            abort_unless($row, 404);
+            $source = DB::table('goods_receipt_details as d')
+                ->join('goods_receipts as gr', 'gr.id', '=', 'd.goods_receipt_id')
+                ->join('purchase_details as pd', 'pd.id', '=', 'd.purchase_detail_id')
+                ->join('units as u', 'u.id', '=', 'pd.purchase_unit_id')
+                ->where('d.id', $row->goods_receipt_detail_id)->whereNull('gr.deleted_at')
+                ->first(['d.id', 'gr.warehouse_id', 'u.operator', 'u.operator_value']);
+            abort_unless($source, 404);
+            WarehouseAccess::assertAllows($source->warehouse_id);
+            if ($row->status !== 'approved') {
+                throw ValidationException::withMessages(['qc' => ['Only an approved, unexecuted disposition can be confirmed.']]);
+            }
+            if ((int) $row->decided_by === (int) $request->user('api')->id) {
+                throw ValidationException::withMessages(['qc' => ['A different custodian must confirm physical handoff.']]);
+            }
+            $baseQuantity = $source->operator === '/'
+                ? (float) $row->quantity / (float) $source->operator_value
+                : (float) $row->quantity * (float) $source->operator_value;
+            $numbers = json_decode($row->serial_numbers ?: '[]', true) ?: [];
+            $serials = collect();
+            if ($numbers) {
                 $serials = DB::table('product_serials')
-                    ->where('source_receipt_detail_id', $row->goods_receipt_detail_id)
+                    ->where('source_receipt_detail_id', $source->id)
                     ->whereIn('serial_number', $numbers)->lockForUpdate()->get();
                 if ($serials->count() !== count($numbers)
                     || $serials->contains(fn ($serial) => $serial->status !== 'qc_rejected')) {
-                    throw ValidationException::withMessages(['serial_numbers' => ['A rejected serial changed state before approval.']]);
-                }
-                foreach ($serials as $serial) {
-                    DB::table('product_serials')->where('id', $serial->id)->update([
-                        'status' => $status, 'warehouse_id' => null, 'updated_at' => now(),
-                    ]);
-                    DB::table('product_serial_events')->insert([
-                        'product_serial_id' => $serial->id, 'event' => $status,
-                        'warehouse_id' => $receipt->warehouse_id,
-                        'reference_type' => 'QcDisposition', 'reference_id' => $id,
-                        'user_id' => $request->user('api')->id, 'created_at' => now(),
-                    ]);
+                    throw ValidationException::withMessages(['serial_numbers' => ['A rejected serial changed state before handoff.']]);
                 }
             }
+            QcCustodyService::execute('goods_receipt_detail', $source->id,
+                $baseQuantity, $serials->pluck('id')->all(), $row->action,
+                $id, $request->user('api')->id,
+                $request->execution_reference . ' · ' . $request->execution_note);
+            $status = $row->action === 'supplier_return' ? 'returned_to_supplier' : 'written_off';
+            foreach ($serials as $serial) {
+                DB::table('product_serials')->where('id', $serial->id)->update([
+                    'status' => $status, 'warehouse_id' => null, 'updated_at' => now(),
+                ]);
+                DB::table('product_serial_events')->insert([
+                    'product_serial_id' => $serial->id, 'event' => $status,
+                    'warehouse_id' => $source->warehouse_id,
+                    'reference_type' => 'QcDisposition', 'reference_id' => $id,
+                    'user_id' => $request->user('api')->id, 'created_at' => now(),
+                ]);
+            }
+            DB::table('goods_receipt_qc_dispositions')->where('id', $id)->update([
+                'status' => 'executed', 'executed_by' => $request->user('api')->id,
+                'executed_at' => now(), 'execution_reference' => $request->execution_reference,
+                'execution_note' => $request->execution_note, 'updated_at' => now(),
+            ]);
+        }, 5);
+        return response()->json(['success' => true]);
+    }
+
+    public function moveCustody(Request $request, $id)
+    {
+        $this->requirePermission($request, 'goods_receipt_qc_disposition_execute');
+        $request->validate([
+            'location' => 'required|string|min:2|max:120',
+            'note' => 'required|string|min:3|max:1000',
+        ]);
+        DB::transaction(function () use ($request, $id) {
+            $row = DB::table('qc_rejected_custody')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($row, 404);
+            WarehouseAccess::assertAllows($row->warehouse_id);
+            if ($row->status !== 'held' || $row->location === trim($request->location)) {
+                throw ValidationException::withMessages(['custody' => ['Choose a different location for held goods.']]);
+            }
+            $location = trim($request->location);
+            DB::table('qc_rejected_custody')->where('id', $id)->update([
+                'location' => $location, 'updated_at' => now(),
+            ]);
+            QcCustodyService::event($id, 'moved', $row->remaining_quantity,
+                $row->location, $location, $row->source_type, $row->source_id,
+                $request->user('api')->id, $request->note);
         }, 5);
         return response()->json(['success' => true]);
     }

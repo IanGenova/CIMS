@@ -104,6 +104,7 @@
               <b-col md="3"><b-form-group label="Failed"><b-form-input type="number" min="0" step="any" v-model.number="l.qc_failed_input" :disabled="l.qc_serials.length > 0" /></b-form-group></b-col>
               <b-col md="6"><b-form-group label="Inspection notes / failure reason"><b-form-input v-model="l.qc_notes_input" /></b-form-group></b-col>
             </b-row>
+            <b-form-group v-if="Number(l.qc_failed_input) > 0" label="Physical QC hold location"><b-form-input v-model="l.qc_hold_location_input" placeholder="e.g. QC cage A1" maxlength="120" /></b-form-group>
             <div v-if="l.qc_serials.length" class="mb-2">
               <div class="small text-muted mb-1">Select the serials that passed. Unselected units fail QC.</div>
               <b-form-checkbox v-for="serial in l.qc_serials" :key="serial" v-model="l.accepted_serials" :value="serial" @change="syncSerialQc(l)">{{ serial }}</b-form-checkbox>
@@ -115,6 +116,15 @@
         <div v-for="l in detail.details" :key="'disposition'+l.id" v-if="Number(l.qc_failed_qte) > 0" class="border rounded p-3 mb-3">
           <h6>Failed goods disposition · {{ l.code }} — {{ l.name }}</h6>
           <p class="text-muted">{{ l.qc_failed_qte }} failed · {{ l.qc_disposition_remaining }} awaiting a disposition request. Failed goods are outside sellable stock.</p>
+          <div v-for="c in l.qc_custody" :key="'custody'+c.id" class="small border-bottom py-2">
+            Held {{ Number(c.remaining_quantity) }} base units at <strong>{{ c.location }}</strong> · {{ c.status }}
+            <div v-if="c.status === 'held' && currentUserPermissions && currentUserPermissions.includes('goods_receipt_qc_disposition_execute')" class="d-flex mt-1">
+              <b-form-input v-model="c.move_location" placeholder="New physical location" class="mr-1" />
+              <b-form-input v-model="c.move_note" placeholder="Move reason" class="mr-1" />
+              <b-button size="sm" variant="outline-primary" :disabled="qcProcessing" @click="Move_Custody(c)">Move</b-button>
+            </div>
+            <div v-for="(event, index) in c.events" :key="index" class="text-muted">{{ event.created_at }} · {{ event.event }} {{ Number(event.quantity) }} · {{ event.from_location || 'Received' }} → {{ event.to_location || 'Exited' }} · {{ event.actor || 'System' }}<span v-if="event.note"> · {{ event.note }}</span></div>
+          </div>
           <div v-for="d in l.qc_dispositions" :key="d.id" class="border-bottom py-2">
             <strong>{{ d.action === 'supplier_return' ? 'Supplier return' : 'Write-off' }}</strong> · {{ Number(d.quantity) }} · {{ d.status }}
             <div class="small">Requested by {{ d.requester }}: {{ d.reason }}<span v-if="d.approver"> · Decided by {{ d.approver }}<span v-if="d.decision_reason">: {{ d.decision_reason }}</span></span></div>
@@ -122,6 +132,13 @@
               <b-button size="sm" variant="success" :disabled="qcProcessing" @click="Decide_Disposition(d, 'approve')">Approve</b-button>
               <b-button size="sm" variant="outline-danger" :disabled="qcProcessing" @click="Decide_Disposition(d, 'reject')">Reject</b-button>
             </div>
+            <div v-if="d.status === 'approved' && currentUserPermissions && currentUserPermissions.includes('goods_receipt_qc_disposition_execute')" class="mt-2">
+              <p class="small text-muted mb-1">Confirm physical {{ d.action === 'supplier_return' ? 'supplier handoff' : 'write-off' }} after it happens.</p>
+              <b-form-input v-model="d.execution_reference_input" placeholder="Handoff / disposal document reference" class="mb-1" />
+              <b-form-input v-model="d.execution_note_input" placeholder="Physical handoff details" class="mb-1" />
+              <b-button size="sm" variant="primary" :disabled="qcProcessing" @click="Execute_Disposition(d)">Confirm physical action</b-button>
+            </div>
+            <div v-if="d.status === 'executed'" class="small">Confirmed {{ d.executed_at }} by {{ d.executor || 'Unknown' }} · {{ d.execution_reference }} · {{ d.execution_note }}</div>
           </div>
           <b-row v-if="l.qc_disposition_remaining > 0 && currentUserPermissions && currentUserPermissions.includes('goods_receipt_qc_disposition_request')" class="mt-2">
             <b-col md="3"><b-form-group label="Action"><b-form-select v-model="l.disposition_action" :options="[{ value: 'supplier_return', text: 'Return to supplier' }, { value: 'write_off', text: 'Write off' }]" /></b-form-group></b-col>
@@ -209,11 +226,14 @@ export default {
           this.$set(l, "qc_passed_input", l.received_qte);
           this.$set(l, "qc_failed_input", 0);
           this.$set(l, "qc_notes_input", "");
+          this.$set(l, "qc_hold_location_input", "");
           this.$set(l, "accepted_serials", l.qc_serials.slice());
           this.$set(l, "disposition_action", "supplier_return");
           this.$set(l, "disposition_quantity", l.qc_disposition_remaining);
           this.$set(l, "disposition_reason", "");
           this.$set(l, "disposition_serials", []);
+          l.qc_custody.forEach(c => { this.$set(c, "move_location", ""); this.$set(c, "move_note", ""); });
+          l.qc_dispositions.forEach(d => { this.$set(d, "execution_reference_input", ""); this.$set(d, "execution_note_input", ""); });
         });
         this.$bvModal.show("grn_detail");
       });
@@ -233,6 +253,7 @@ export default {
         passed_qte: line.qc_passed_input,
         failed_qte: line.qc_failed_input,
         notes: line.qc_notes_input,
+        hold_location: line.qc_hold_location_input,
         accepted_serials: line.accepted_serials
       }).then(() => {
         const receiptId = this.detail.goods_receipt.id;
@@ -271,6 +292,27 @@ export default {
           this.Show({ id: this.detail.goods_receipt.id });
           this.makeToast("success", "Disposition decision recorded", this.$t("Success"));
         }).catch(this.showQcError).finally(() => { this.qcProcessing = false; });
+    },
+
+    Execute_Disposition(disposition) {
+      this.qcProcessing = true;
+      axios.post("qc_dispositions/" + disposition.id + "/execute", {
+        execution_reference: disposition.execution_reference_input,
+        execution_note: disposition.execution_note_input
+      }).then(() => {
+        this.Show({ id: this.detail.goods_receipt.id });
+        this.makeToast("success", "Physical disposition recorded", this.$t("Success"));
+      }).catch(this.showQcError).finally(() => { this.qcProcessing = false; });
+    },
+
+    Move_Custody(custody) {
+      this.qcProcessing = true;
+      axios.post("qc_custody/" + custody.id + "/move", {
+        location: custody.move_location, note: custody.move_note
+      }).then(() => {
+        this.Show({ id: this.detail.goods_receipt.id });
+        this.makeToast("success", "Custody location recorded", this.$t("Success"));
+      }).catch(this.showQcError).finally(() => { this.qcProcessing = false; });
     },
 
     showQcError(error) {

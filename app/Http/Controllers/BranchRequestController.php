@@ -60,6 +60,30 @@ class BranchRequestController extends BaseController
                         ->leftJoin('users as u', 'u.id', '=', 'q.decided_by')
                         ->where('q.branch_shipment_item_id', $item->id)
                         ->orderBy('q.id')->get(['q.*', 'u.username as decider']);
+                    $item->qc_custody = DB::table('qc_rejected_custody')
+                        ->where('source_type', 'branch_shipment_item')
+                        ->where('source_id', $item->id)->orderBy('id')
+                        ->get(['id', 'original_quantity', 'remaining_quantity', 'location', 'status'])
+                        ->map(function ($custody) {
+                            $custody->events = DB::table('qc_custody_events as e')
+                                ->leftJoin('users as u', 'u.id', '=', 'e.actor_id')
+                                ->where('e.custody_id', $custody->id)->orderBy('e.id')
+                                ->get(['e.event', 'e.quantity', 'e.from_location', 'e.to_location',
+                                    'e.reference_type', 'e.reference_id', 'e.note',
+                                    'e.created_at', 'u.username as actor']);
+                            return $custody;
+                        });
+                    $item->qc_dispositions = DB::table('branch_return_qc_dispositions as q')
+                        ->leftJoin('users as requester', 'requester.id', '=', 'q.requested_by')
+                        ->leftJoin('users as approver', 'approver.id', '=', 'q.decided_by')
+                        ->leftJoin('users as executor', 'executor.id', '=', 'q.executed_by')
+                        ->where('q.branch_shipment_item_id', $item->id)->orderBy('q.id')
+                        ->get(['q.*', 'requester.username as requester',
+                            'approver.username as approver', 'executor.username as executor']);
+                    $item->qc_disposition_remaining = max(0, (float) $item->qc_failed_qte
+                        - (float) DB::table('branch_return_qc_dispositions')
+                            ->where('branch_shipment_item_id', $item->id)
+                            ->whereIn('status', ['pending', 'approved', 'executed'])->sum('quantity'));
                 }
             }
         }
@@ -422,12 +446,16 @@ class BranchRequestController extends BaseController
             'passed_qte' => 'required|numeric|min:0',
             'failed_qte' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:5000',
+            'hold_location' => 'nullable|string|max:120',
         ]);
         if ((float) $request->passed_qte + (float) $request->failed_qte <= 0) {
             $this->fail('Inspect a positive received quantity.');
         }
         if ((float) $request->failed_qte > 0 && ! $request->filled('notes')) {
             $this->fail('Record why returned goods failed inspection.');
+        }
+        if ((float) $request->failed_qte > 0 && ! trim((string) $request->hold_location)) {
+            $this->fail('Record the physical QC hold location for failed returned goods.');
         }
         DB::transaction(function () use ($request, $shipmentId) {
             $shipment = DB::table('branch_shipments')->where('id', $shipmentId)->lockForUpdate()->first();
@@ -490,6 +518,14 @@ class BranchRequestController extends BaseController
                     ->where('status', 'qc_hold')->update(['status' => 'qc_rejected', 'updated_at' => now()]);
                 $this->serialEvent($item->product_serial_id, 'branch_return_qc_failed',
                     $order->to_warehouse_id, $shipmentId);
+            }
+            if ((float) $request->failed_qte > 0) {
+                \App\utils\QcCustodyService::recordFailure('branch_shipment_item', $item->id,
+                    $order->to_warehouse_id, $line->product_id, $line->product_variant_id,
+                    $item->product_batch_id,
+                    $item->product_serial_id ? [$item->product_serial_id] : [],
+                    (float) $request->failed_qte, trim($request->hold_location),
+                    $request->user('api')->id, $request->notes);
             }
             DB::table('branch_shipment_qc_decisions')->insert([
                 'branch_shipment_item_id' => $item->id,

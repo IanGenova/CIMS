@@ -54,15 +54,50 @@
             <b-form-input v-model="shipment.discrepancy_notes_input" class="my-2" placeholder="Reason for any shortage" />
             <b-button v-if="can('transfer_edit')" size="sm" variant="success" :disabled="busy" @click="receive(shipment)">Record branch receipt</b-button>
           </div>
-          <div v-if="selected.kind === 'pullout' && line.requires_qc && can('goods_receipt_qc_approve')" class="mt-2">
-            <div v-for="item in shipment.items" :key="'qc-'+item.id" v-if="Number(item.received_qte) > Number(item.qc_passed_qte) + Number(item.qc_failed_qte)">
+          <div v-if="selected.kind === 'pullout' && line.requires_qc" class="mt-2">
+            <div v-for="item in shipment.items" :key="'qc-'+item.id" v-if="can('goods_receipt_qc_approve') && Number(item.received_qte) > Number(item.qc_passed_qte) + Number(item.qc_failed_qte)">
               <p class="mb-1">Return QC: {{ item.batch_number ? 'Lot ' + item.batch_number : (item.serial_number || line.name) }} · awaiting {{ Number(item.received_qte) - Number(item.qc_passed_qte) - Number(item.qc_failed_qte) }}</p>
               <b-row>
                 <b-col md="2"><b-form-group label="Pass"><b-form-input v-model.number="item.qc_pass_now" type="number" min="0" step="any" /></b-form-group></b-col>
                 <b-col md="2"><b-form-group label="Fail"><b-form-input v-model.number="item.qc_fail_now" type="number" min="0" step="any" /></b-form-group></b-col>
                 <b-col md="6"><b-form-group label="Inspection notes"><b-form-input v-model="item.qc_notes_input" /></b-form-group></b-col>
+                <b-col v-if="Number(item.qc_fail_now) > 0" md="6"><b-form-group label="Physical QC hold location"><b-form-input v-model="item.qc_hold_location_input" placeholder="e.g. Returns cage R1" /></b-form-group></b-col>
                 <b-col md="2" class="d-flex align-items-center"><b-button size="sm" variant="success" :disabled="busy" @click="decideQc(shipment,item)">Decide QC</b-button></b-col>
               </b-row>
+            </div>
+            <div v-for="item in shipment.items" :key="'custody-item-'+item.id">
+              <div v-if="Number(item.qc_disposition_remaining) > 0 && can('branch_return_qc_disposition_request')" class="border-top pt-2 mt-2">
+                <strong>Request disposition of rejected return</strong>
+                <b-row>
+                  <b-col md="2"><b-form-group label="Action"><b-form-select v-model="item.disposition_action" :options="[{value:'write_off',text:'Write off'},{value:'supplier_return',text:'Return to supplier'}]" /></b-form-group></b-col>
+                  <b-col md="2"><b-form-group label="Quantity"><b-form-input v-model.number="item.disposition_quantity" type="number" step="any" min="0.000001" :max="Number(item.qc_disposition_remaining)" /></b-form-group></b-col>
+                  <b-col md="6"><b-form-group label="Reason"><b-form-input v-model="item.disposition_reason" /></b-form-group></b-col>
+                  <b-col md="2" class="d-flex align-items-center"><b-button size="sm" variant="warning" :disabled="busy" @click="requestDisposition(item)">Request</b-button></b-col>
+                </b-row>
+              </div>
+              <div v-for="disposition in item.qc_dispositions" :key="'disposition-'+disposition.id" class="small border-top pt-2 mt-2">
+                {{ disposition.action }} · {{ Number(disposition.quantity) }} units · {{ disposition.status }} · requested by {{ disposition.requester }}
+                <div v-if="disposition.status === 'pending' && can('branch_return_qc_disposition_approve')" class="d-flex mt-1">
+                  <b-form-input v-model="disposition.decision_reason_input" placeholder="Reason for rejection, if rejecting" class="mr-1" />
+                  <b-button size="sm" variant="success" class="mr-1" :disabled="busy" @click="decideDisposition(disposition,'approve')">Approve</b-button>
+                  <b-button size="sm" variant="outline-danger" :disabled="busy" @click="decideDisposition(disposition,'reject')">Reject</b-button>
+                </div>
+                <div v-if="disposition.status === 'approved' && can('branch_return_qc_disposition_execute')" class="d-flex mt-1">
+                  <b-form-input v-model="disposition.execution_reference_input" placeholder="Handoff / write-off reference" class="mr-1" />
+                  <b-form-input v-model="disposition.execution_note_input" placeholder="Physical handoff details" class="mr-1" />
+                  <b-button size="sm" variant="warning" :disabled="busy" @click="executeDisposition(disposition)">Confirm exit</b-button>
+                </div>
+                <div v-if="disposition.executed_at">Confirmed {{ disposition.executed_at }} by {{ disposition.executor || 'Unknown' }} · {{ disposition.execution_reference }} · {{ disposition.execution_note }}</div>
+              </div>
+              <div v-for="custody in item.qc_custody" :key="'custody-'+custody.id" class="small border-top pt-2 mt-2">
+                Rejected goods held: {{ Number(custody.remaining_quantity) }} base units at <strong>{{ custody.location }}</strong> · {{ custody.status }}
+                <div v-if="custody.status === 'held' && can('goods_receipt_qc_disposition_execute')" class="d-flex mt-1">
+                  <b-form-input v-model="custody.move_location" placeholder="New location" class="mr-1" />
+                  <b-form-input v-model="custody.move_note" placeholder="Move reason" class="mr-1" />
+                  <b-button size="sm" variant="outline-primary" :disabled="busy" @click="moveCustody(custody)">Move</b-button>
+                </div>
+                <div v-for="(event, index) in custody.events" :key="index" class="text-muted">{{ event.created_at }} · {{ event.event }} {{ Number(event.quantity) }} · {{ event.from_location || 'Received' }} → {{ event.to_location || 'Exited' }} · {{ event.actor || 'System' }}<span v-if="event.note"> · {{ event.note }}</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -111,6 +146,12 @@ export default {
               this.$set(item, "qc_pass_now", Number(item.received_qte) - Number(item.qc_passed_qte) - Number(item.qc_failed_qte));
               this.$set(item, "qc_fail_now", 0);
               this.$set(item, "qc_notes_input", "");
+              this.$set(item, "qc_hold_location_input", "");
+              this.$set(item, "disposition_action", "write_off");
+              this.$set(item, "disposition_quantity", Number(item.qc_disposition_remaining));
+              this.$set(item, "disposition_reason", "");
+              (item.qc_dispositions || []).forEach(d => { this.$set(d, "decision_reason_input", ""); this.$set(d, "execution_reference_input", ""); this.$set(d, "execution_note_input", ""); });
+              (item.qc_custody || []).forEach(c => { this.$set(c, "move_location", ""); this.$set(c, "move_note", ""); });
             });
           });
         });
@@ -154,7 +195,35 @@ export default {
       this.busy = true; this.error = "";
       axios.post("branch_shipments/" + shipment.id + "/qc", {
         item_id: item.id, passed_qte: item.qc_pass_now,
-        failed_qte: item.qc_fail_now, notes: item.qc_notes_input
+        failed_qte: item.qc_fail_now, notes: item.qc_notes_input,
+        hold_location: item.qc_hold_location_input
+      }).then(() => { this.refresh(); this.open(this.selected.id); })
+        .catch(this.problem).finally(() => { this.busy = false; });
+    },
+    moveCustody(custody) {
+      this.busy = true; this.error = "";
+      axios.post("qc_custody/" + custody.id + "/move", {
+        location: custody.move_location, note: custody.move_note
+      }).then(() => { this.refresh(); this.open(this.selected.id); })
+        .catch(this.problem).finally(() => { this.busy = false; });
+    },
+    requestDisposition(item) {
+      this.busy = true; this.error = "";
+      axios.post("branch_shipment_items/" + item.id + "/qc_dispositions", {
+        action: item.disposition_action, quantity: item.disposition_quantity, reason: item.disposition_reason
+      }).then(() => this.open(this.selected.id)).catch(this.problem).finally(() => { this.busy = false; });
+    },
+    decideDisposition(disposition, decision) {
+      this.busy = true; this.error = "";
+      axios.post("branch_return_qc_dispositions/" + disposition.id + "/decision", {
+        decision, reason: disposition.decision_reason_input
+      }).then(() => this.open(this.selected.id)).catch(this.problem).finally(() => { this.busy = false; });
+    },
+    executeDisposition(disposition) {
+      this.busy = true; this.error = "";
+      axios.post("branch_return_qc_dispositions/" + disposition.id + "/execute", {
+        execution_reference: disposition.execution_reference_input,
+        execution_note: disposition.execution_note_input
       }).then(() => { this.refresh(); this.open(this.selected.id); })
         .catch(this.problem).finally(() => { this.busy = false; });
     }

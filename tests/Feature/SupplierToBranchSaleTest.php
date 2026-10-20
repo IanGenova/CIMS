@@ -19,6 +19,7 @@ class SupplierToBranchSaleTest extends TestCase
         $clerk = $this->actAsUserWith([
             'goods_receipt_add', 'goods_receipt_view', 'goods_receipt_qc_approve',
             'goods_receipt_qc_disposition_request', 'goods_receipt_qc_disposition_approve',
+            'goods_receipt_qc_disposition_execute',
             'transfer_view', 'transfer_add', 'transfer_edit', 'branch_request_approve',
             'Sales_add', 'Sales_view', 'Sales_edit', 'Sales_delete', 'products_view',
         ]);
@@ -66,6 +67,7 @@ class SupplierToBranchSaleTest extends TestCase
         $this->postJson("/api/goods_receipts/{$firstReceipt}/qc", [
             'receipt_detail_id' => $firstLine->id, 'passed_qte' => 6,
             'failed_qte' => 2, 'notes' => 'Two damaged units',
+            'hold_location' => 'QC cage A1',
         ])->assertSuccessful();
         $firstLot = DB::table('product_batches')->where('source_receipt_detail_id', $firstLine->id)->value('id');
 
@@ -85,6 +87,14 @@ class SupplierToBranchSaleTest extends TestCase
         $this->actingAs($manager, 'api');
         $this->postJson("/api/qc_dispositions/{$disposition}/decision", ['decision' => 'approve'])
             ->assertOk();
+        $this->actingAs($clerk, 'api');
+        $this->postJson("/api/qc_dispositions/{$disposition}/execute", [
+            'execution_reference' => 'RMA-CHAIN-1',
+            'execution_note' => 'Two rejected units returned to supplier',
+        ])->assertOk();
+        $this->assertEquals(0, DB::table('qc_rejected_custody')
+            ->where('source_type', 'goods_receipt_detail')
+            ->where('source_id', $firstLine->id)->sum('remaining_quantity'));
 
         $secondReceipt = $this->postJson('/api/goods_receipts', [
             'purchase_id' => $po, 'date' => now()->toDateString(),

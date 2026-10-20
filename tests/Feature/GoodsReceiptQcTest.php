@@ -73,7 +73,7 @@ class GoodsReceiptQcTest extends TestCase
             ->assertJsonPath('exceptions.pending_qc_lines', 1);
         $this->postJson("/api/goods_receipts/{$receiptId}/qc", [
             'receipt_detail_id' => $line->id, 'passed_qte' => 3, 'failed_qte' => 1,
-            'notes' => 'One damaged unit',
+            'notes' => 'One damaged unit', 'hold_location' => 'QC cage A1',
         ])->assertSuccessful();
         $lotId = DB::table('product_batches')->where('source_receipt_detail_id', $line->id)->value('id');
         $clientId = DB::table('clients')->insertGetId(['name' => 'Recall Customer', 'code' => 9001]);
@@ -129,7 +129,7 @@ class GoodsReceiptQcTest extends TestCase
         $this->putJson('/api/batches/tracking/' . $f['product'], ['has_batches' => false])->assertStatus(422);
 
         $decision = ['receipt_detail_id' => $detail->id, 'passed_qte' => 3,
-            'failed_qte' => 1, 'notes' => 'One damaged bag'];
+            'failed_qte' => 1, 'notes' => 'One damaged bag', 'hold_location' => 'QC cage A1'];
         $this->postJson("/api/goods_receipts/{$receipt}/qc", $decision)->assertForbidden();
 
         $permission = DB::table('permissions')->where('name', 'goods_receipt_qc_approve')->value('id');
@@ -171,6 +171,7 @@ class GoodsReceiptQcTest extends TestCase
         $this->postJson("/api/goods_receipts/{$receipt}/qc", [
             'receipt_detail_id' => $detail->id, 'passed_qte' => 1,
             'failed_qte' => 1, 'notes' => 'QC-002 failed inspection',
+            'hold_location' => 'QC serial shelf',
             'accepted_serials' => ['QC-001'],
         ])->assertSuccessful();
 
@@ -181,9 +182,15 @@ class GoodsReceiptQcTest extends TestCase
             ->assertJsonPath('serials.0.source.qc_status', 'partial');
         $this->assertEquals(1, DB::table('purchase_details')->where('id', $f['line'])->value('received_qte'));
 
-        $this->deleteJson("/api/goods_receipts/{$receipt}")->assertSuccessful();
-        $this->assertEquals(0, DB::table('product_warehouse')->where('product_id', $f['product'])->sum('qte'));
-        $this->assertEquals(0, DB::table('product_serials')->where('product_id', $f['product'])->count());
+        $this->deleteJson("/api/goods_receipts/{$receipt}")->assertStatus(422);
+        $this->assertEquals(1, DB::table('qc_rejected_custody')
+            ->where('source_type', 'goods_receipt_detail')->where('source_id', $detail->id)
+            ->sum('remaining_quantity'));
+        $this->getJson('/api/traceability/overview')->assertOk()
+            ->assertJsonPath('exceptions.rejected_custody_items', 1);
+        $this->getJson('/api/traceability/exceptions?type=rejected_custody_items')->assertOk()
+            ->assertJsonPath('rows.0.location', 'QC serial shelf')
+            ->assertJsonPath('rows.0.serial_number', 'QC-002');
     }
 
     /** @test */
@@ -200,7 +207,7 @@ class GoodsReceiptQcTest extends TestCase
         ])->assertStatus(422);
         $this->postJson("/api/goods_receipts/{$receipt}/qc", [
             'receipt_detail_id' => $detail->id, 'passed_qte' => 3, 'failed_qte' => 1,
-            'notes' => 'One damaged unit',
+            'notes' => 'One damaged unit', 'hold_location' => 'QC cage A1',
         ])->assertSuccessful();
         $this->assertEquals(3, DB::table('product_warehouse')->where('product_id', $f['product'])->sum('qte'));
         $this->assertSame('partial', DB::table('goods_receipt_details')->where('id', $detail->id)->value('qc_status'));
@@ -230,15 +237,16 @@ class GoodsReceiptQcTest extends TestCase
     public function failed_goods_need_a_different_manager_to_approve_supplier_return_or_writeoff()
     {
         $requester = $this->actAsUserWith([
-            'goods_receipt_add', 'goods_receipt_view', 'goods_receipt_qc_approve',
+            'goods_receipt_add', 'goods_receipt_view', 'goods_receipt_qc_approve', 'products_view',
             'goods_receipt_qc_disposition_request', 'goods_receipt_qc_disposition_approve',
+            'goods_receipt_qc_disposition_execute',
         ]);
         $f = $this->fixtures('plain');
         $receipt = $this->receive($f, 4, []);
         $line = DB::table('goods_receipt_details')->where('goods_receipt_id', $receipt)->first();
         $this->postJson("/api/goods_receipts/{$receipt}/qc", [
             'receipt_detail_id' => $line->id, 'passed_qte' => 3, 'failed_qte' => 1,
-            'notes' => 'Damaged package',
+            'notes' => 'Damaged package', 'hold_location' => 'QC cage A1',
         ])->assertSuccessful();
 
         $payload = ['receipt_detail_id' => $line->id, 'action' => 'supplier_return',
@@ -263,7 +271,23 @@ class GoodsReceiptQcTest extends TestCase
             ->where('id', $id)->value('decided_by'));
         $this->postJson("/api/qc_dispositions/{$id}/decision", ['decision' => 'approve'])
             ->assertStatus(422);
+        $execution = ['execution_reference' => 'SUPPLIER-RMA-100',
+            'execution_note' => 'Damaged package handed to supplier driver'];
+        $this->postJson("/api/qc_dispositions/{$id}/execute", $execution)->assertStatus(422);
+        $this->actingAs($requester, 'api');
+        $custodyId = DB::table('qc_rejected_custody')->where('source_type', 'goods_receipt_detail')
+            ->where('source_id', $line->id)->value('id');
+        $this->postJson("/api/qc_custody/{$custodyId}/move", [
+            'location' => 'Returns dispatch shelf', 'note' => 'Prepared for supplier collection',
+        ])->assertOk();
+        $this->postJson("/api/qc_dispositions/{$id}/execute", $execution)->assertOk();
+        $this->postJson("/api/qc_dispositions/{$id}/execute", $execution)->assertStatus(422);
+        $this->assertSame('executed', DB::table('goods_receipt_qc_dispositions')->where('id', $id)->value('status'));
+        $this->assertEquals(0, DB::table('qc_rejected_custody')->where('id', $custodyId)->value('remaining_quantity'));
+        $this->assertEquals(3, DB::table('qc_custody_events')->where('custody_id', $custodyId)->count());
         $this->assertEquals(3, DB::table('product_warehouse')->where('product_id', $f['product'])->sum('qte'));
+        $this->getJson('/api/traceability/overview')->assertOk()
+            ->assertJsonPath('exceptions.rejected_custody_items', 0);
     }
 
     /** @test */
@@ -272,6 +296,7 @@ class GoodsReceiptQcTest extends TestCase
         $requester = $this->actAsUserWith([
             'goods_receipt_add', 'goods_receipt_delete', 'goods_receipt_qc_approve',
             'goods_receipt_qc_disposition_request', 'goods_receipt_qc_disposition_approve',
+            'goods_receipt_qc_disposition_execute',
         ]);
         $f = $this->fixtures('serial');
         $receipt = $this->receive($f, 2, ['serials' => ['QC-101', 'QC-102']]);
@@ -279,6 +304,7 @@ class GoodsReceiptQcTest extends TestCase
         $this->postJson("/api/goods_receipts/{$receipt}/qc", [
             'receipt_detail_id' => $line->id, 'passed_qte' => 1, 'failed_qte' => 1,
             'accepted_serials' => ['QC-101'], 'notes' => 'QC-102 is damaged',
+            'hold_location' => 'QC serial shelf',
         ])->assertSuccessful();
         $payload = ['receipt_detail_id' => $line->id, 'action' => 'supplier_return',
             'quantity' => 1, 'reason' => 'Damaged at delivery',
@@ -294,6 +320,13 @@ class GoodsReceiptQcTest extends TestCase
         $this->actingAs($manager, 'api');
         $this->postJson("/api/qc_dispositions/{$id}/decision", ['decision' => 'approve'])
             ->assertOk();
+        $this->assertSame('qc_rejected', DB::table('product_serials')
+            ->where('serial_number', 'QC-102')->value('status'));
+        $this->actingAs($requester, 'api');
+        $this->postJson("/api/qc_dispositions/{$id}/execute", [
+            'execution_reference' => 'RMA-SERIAL-102',
+            'execution_note' => 'Serial handed back to supplier',
+        ])->assertOk();
         $this->assertSame('returned_to_supplier', DB::table('product_serials')
             ->where('serial_number', 'QC-102')->value('status'));
         $this->assertEquals(1, DB::table('product_serial_events')

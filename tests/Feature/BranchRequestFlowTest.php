@@ -121,6 +121,8 @@ class BranchRequestFlowTest extends TestCase
         $requester = $this->actAsUserWith([
             'transfer_view', 'transfer_add', 'transfer_edit', 'branch_request_approve',
             'goods_receipt_qc_approve', 'products_view',
+            'branch_return_qc_disposition_request', 'branch_return_qc_disposition_approve',
+            'branch_return_qc_disposition_execute', 'goods_receipt_qc_disposition_execute',
         ]);
         $central = DB::table('warehouses')->insertGetId([
             'name' => 'Central', 'site_type' => 'central_warehouse', 'code' => 'CENTRAL',
@@ -178,7 +180,7 @@ class BranchRequestFlowTest extends TestCase
             ->assertJsonPath('rows.0.quantity', '2.000000');
         $this->postJson("/api/branch_shipments/{$shipmentId}/qc", [
             'item_id' => $item->id, 'passed_qte' => 1, 'failed_qte' => 1,
-            'notes' => 'One carton rejected',
+            'notes' => 'One carton rejected', 'hold_location' => 'Returns cage R1',
         ])->assertStatus(422);
 
         $approver = User::create([
@@ -190,16 +192,53 @@ class BranchRequestFlowTest extends TestCase
         $this->actingAs($approver, 'api');
         $this->postJson("/api/branch_shipments/{$shipmentId}/qc", [
             'item_id' => $item->id, 'passed_qte' => 1, 'failed_qte' => 1,
-            'notes' => 'One carton rejected',
+            'notes' => 'One carton rejected', 'hold_location' => 'Returns cage R1',
         ])->assertOk();
         $this->assertEquals(1, DB::table('batch_stock')->where('product_batch_id', $lot)
             ->where('warehouse_id', $central)->value('qte'));
         $this->assertEquals(1, DB::table('batch_stock')->where('product_batch_id', $lot)
             ->where('warehouse_id', $branch)->value('qte'));
         $this->assertEquals(1, DB::table('branch_shipment_items')->where('id', $item->id)->value('qc_failed_qte'));
+        $this->assertSame('Returns cage R1', DB::table('qc_rejected_custody')
+            ->where('source_type', 'branch_shipment_item')->where('source_id', $item->id)
+            ->value('location'));
         $this->assertSame('received', DB::table('branch_requests')->where('id', $requestId)->value('status'));
         $this->getJson('/api/traceability/overview')->assertOk()
-            ->assertJsonPath('exceptions.pending_return_qc_items', 0);
+            ->assertJsonPath('exceptions.pending_return_qc_items', 0)
+            ->assertJsonPath('exceptions.rejected_custody_items', 1);
+        $this->getJson('/api/traceability/exceptions?type=rejected_custody_items')->assertOk()
+            ->assertJsonPath('rows.0.source_type', 'branch_shipment_item')
+            ->assertJsonPath('rows.0.location', 'Returns cage R1');
+        $this->postJson("/api/branch_shipment_items/{$item->id}/qc_dispositions", [
+            'action' => 'write_off', 'quantity' => 2, 'reason' => 'Too many units',
+        ])->assertStatus(422);
+        $this->actingAs($requester, 'api');
+        $disposition = $this->postJson("/api/branch_shipment_items/{$item->id}/qc_dispositions", [
+            'action' => 'write_off', 'quantity' => 1, 'reason' => 'Damaged returned carton',
+        ])->assertCreated()->json('id');
+        $this->postJson("/api/branch_return_qc_dispositions/{$disposition}/decision", [
+            'decision' => 'approve',
+        ])->assertStatus(422);
+        $this->actingAs($approver, 'api');
+        $this->postJson("/api/branch_return_qc_dispositions/{$disposition}/decision", [
+            'decision' => 'approve',
+        ])->assertOk();
+        $execution = ['execution_reference' => 'WRITE-OFF-RETURN-1',
+            'execution_note' => 'Damaged carton disposed at central warehouse'];
+        $this->postJson("/api/branch_return_qc_dispositions/{$disposition}/execute", $execution)
+            ->assertStatus(422);
+        $this->actingAs($requester, 'api');
+        $this->postJson("/api/branch_return_qc_dispositions/{$disposition}/execute", $execution)
+            ->assertOk();
+        $this->postJson("/api/branch_return_qc_dispositions/{$disposition}/execute", $execution)
+            ->assertStatus(422);
+        $this->assertEquals(0, DB::table('qc_rejected_custody')
+            ->where('source_type', 'branch_shipment_item')->where('source_id', $item->id)
+            ->sum('remaining_quantity'));
+        $this->assertEquals(1, DB::table('batch_stock')->where('product_batch_id', $lot)
+            ->where('warehouse_id', $central)->value('qte'));
+        $this->getJson('/api/traceability/overview')->assertOk()
+            ->assertJsonPath('exceptions.rejected_custody_items', 0);
         $this->getJson("/api/batches/{$lot}/trace")->assertOk()
             ->assertJsonPath('reconciliation.in_sync', true);
     }

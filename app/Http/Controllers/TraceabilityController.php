@@ -65,6 +65,9 @@ class TraceabilityController extends BaseController
             ->groupBy('r.to_warehouse_id')
             ->pluck(DB::raw('SUM(i.received_qte - i.qc_passed_qte - i.qc_failed_qte) as quantity'),
                 'r.to_warehouse_id');
+        $rejectedHold = DB::table('qc_rejected_custody')->where('status', 'held')
+            ->groupBy('warehouse_id')
+            ->pluck(DB::raw('SUM(remaining_quantity) as quantity'), 'warehouse_id');
         $stockTotals = [];
         foreach (DB::table('product_warehouse')->whereNull('deleted_at')
             ->get(['warehouse_id', 'product_id', 'product_variant_id', 'qte']) as $row) {
@@ -82,6 +85,7 @@ class TraceabilityController extends BaseController
             $location->available_to_promise = $stockTotals[$location->id]['available'] ?? 0;
             $location->in_transit_to_location = (float) ($inTransit->get($location->id) ?? 0);
             $location->return_qc_hold = (float) ($returnQcHold->get($location->id) ?? 0);
+            $location->rejected_qc_hold = (float) ($rejectedHold->get($location->id) ?? 0);
             $location->low_stock_products = (int) $lowStock->get($location->id, 0);
             $location->sales_30d_count = $salesVisible
                 ? (int) optional($sales->get($location->id))->sale_count : null;
@@ -110,6 +114,8 @@ class TraceabilityController extends BaseController
             ->join('branch_requests as r', 'r.id', '=', 'l.branch_request_id')
             ->where('r.kind', 'pullout')
             ->whereRaw('i.received_qte > i.qc_passed_qte + i.qc_failed_qte')->count();
+        $rejectedCustody = DB::table('qc_rejected_custody')
+            ->where('status', 'held')->count();
 
         return response()->json([
             'locations' => $locations,
@@ -117,6 +123,7 @@ class TraceabilityController extends BaseController
             'exceptions' => [
                 'pending_qc_lines' => $pendingQc,
                 'pending_return_qc_items' => $pendingReturnQc,
+                'rejected_custody_items' => $rejectedCustody,
                 'source_unknown_lots' => $unknownLots,
                 'source_unknown_serials' => $unknownSerials,
                 'expired_lots_with_stock' => $expiredLots,
@@ -189,7 +196,7 @@ class TraceabilityController extends BaseController
         $this->authorizeForUser($request->user('api'), 'view', Product::class);
         abort_if(WarehouseAccess::isRestricted(), 403, 'Network trace requires access to all warehouses.');
         $request->validate([
-            'type' => 'required|in:pending_qc_lines,pending_return_qc_items,source_unknown_lots,source_unknown_serials,expired_lots_with_stock,lot_balance_mismatches,low_stock',
+            'type' => 'required|in:pending_qc_lines,pending_return_qc_items,rejected_custody_items,source_unknown_lots,source_unknown_serials,expired_lots_with_stock,lot_balance_mismatches,low_stock',
             'warehouse_id' => 'nullable|integer|exists:warehouses,id',
         ]);
         $type = $request->query('type');
@@ -221,6 +228,29 @@ class TraceabilityController extends BaseController
                 ->get(['i.id', 'sh.Ref as shipment_ref', 'p.code as product_code',
                     'p.name as product', 'w.name as warehouse',
                     DB::raw('i.received_qte - i.qc_passed_qte - i.qc_failed_qte as quantity')]);
+        } elseif ($type === 'rejected_custody_items') {
+            $rows = DB::table('qc_rejected_custody as c')
+                ->join('products as p', 'p.id', '=', 'c.product_id')
+                ->join('warehouses as w', 'w.id', '=', 'c.warehouse_id')
+                ->leftJoin('product_batches as b', 'b.id', '=', 'c.product_batch_id')
+                ->leftJoin('product_serials as s', 's.id', '=', 'c.product_serial_id')
+                ->leftJoin('goods_receipt_details as d', function ($join) {
+                    $join->on('d.id', '=', 'c.source_id')
+                        ->where('c.source_type', '=', 'goods_receipt_detail');
+                })
+                ->leftJoin('goods_receipts as gr', 'gr.id', '=', 'd.goods_receipt_id')
+                ->leftJoin('branch_shipment_items as i', function ($join) {
+                    $join->on('i.id', '=', 'c.source_id')
+                        ->where('c.source_type', '=', 'branch_shipment_item');
+                })
+                ->leftJoin('branch_shipments as sh', 'sh.id', '=', 'i.branch_shipment_id')
+                ->where('c.status', 'held')
+                ->when($warehouseId, fn ($q) => $q->where('c.warehouse_id', $warehouseId))
+                ->orderByDesc('c.id')->limit($limit)
+                ->get(['c.id', 'c.source_type', 'c.source_id', 'c.location',
+                    'c.remaining_quantity as quantity', 'p.code as product_code',
+                    'p.name as product', 'w.name as warehouse', 'b.batch_number',
+                    's.serial_number', 'gr.Ref as receipt_ref', 'sh.Ref as shipment_ref']);
         } elseif ($type === 'source_unknown_serials') {
             $rows = DB::table('product_serials as s')
                 ->join('products as p', 'p.id', '=', 's.product_id')
