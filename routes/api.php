@@ -198,7 +198,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
 
     Route::resource('Products', 'ProductsController');
     Route::get('Products/export/Excel', 'ProductsController@export_Excel');
-    Route::post('Products/import/csv', 'ProductsController@import_products');
+    Route::post('Products/import/csv', 'ProductImportController@store');
     Route::get('Products/Warehouse/{id}', 'ProductsController@Products_by_Warehouse');
     Route::get('serials/lookup', 'SerialController@lookup');
     Route::get('serials/available', 'SerialController@available');

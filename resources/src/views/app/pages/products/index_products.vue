@@ -179,112 +179,55 @@
       <!-- Modal Show Import Products -->
       <b-modal
         ok-only
-        ok-title="Cancel"
-        size="md"
+        ok-title="Close"
+        size="lg"
+        dialog-class="cims-product-import-dialog"
         id="importProducts"
         :title="$t('import_products')"
+        @hidden="resetImport"
       >
-        <b-form @submit.prevent="Submit_import" enctype="multipart/form-data">
-          <b-row>
-            <!-- File -->
-            <b-col md="12" sm="12" class="mb-3">
-              <b-form-group>
-                <input type="file" @change="onFileSelected" label="Choose File">
-                <b-form-invalid-feedback
-                  id="File-feedback"
-                  class="d-block"
-                >{{$t('field_must_be_in_csv_format')}}</b-form-invalid-feedback>
-              </b-form-group>
-            </b-col>
+        <div>
+          <p class="text-muted">Download the CSV template, fill one product per row, then preview before importing. No products are saved during preview.</p>
+          <div class="d-flex flex-wrap align-items-center mb-3">
+            <b-button href="/import/exemples/import_products.csv" variant="outline-info" size="sm" class="mr-3 mb-2">Download CSV template</b-button>
+            <small class="text-muted mb-2">Required: name, code, category, cost, price, unit. Use existing categories, brands and unit short names.</small>
+          </div>
+          <b-form-file v-model="import_products" accept=".csv,text/csv" placeholder="Choose a CSV file (maximum 1 MB)" class="mb-3" @input="resetImportPreview" />
+          <b-alert v-if="importFileError" show variant="danger">{{ importFileError }}</b-alert>
+          <b-button variant="primary" :disabled="ImportProcessing || !import_products" @click="previewImport">
+            {{ ImportProcessing ? 'Checking file...' : 'Preview and validate' }}
+          </b-button>
 
-             <b-col md="6" sm="12">
-            <b-button type="submit" variant="primary" :disabled="ImportProcessing" size="sm" block>{{ $t("submit") }}</b-button>
-              <div v-once class="typo__p" v-if="ImportProcessing">
-                <div class="spinner sm spinner-primary mt-3"></div>
+          <div v-if="importPreview" class="mt-4">
+            <b-alert show :variant="importPreview.error_count ? 'warning' : 'success'">
+              {{ importPreview.total_rows }} {{ importPreview.total_rows === 1 ? 'row' : 'rows' }} checked · {{ importPreview.valid_rows }} valid · {{ importPreview.error_count }} {{ importPreview.error_count === 1 ? 'issue' : 'issues' }}.
+              <span v-if="importPreview.error_count">Correct the CSV and preview it again. Nothing has been imported.</span>
+            </b-alert>
+            <div v-if="importPreview.errors.length" class="import-errors mb-3" role="alert">
+              <div v-for="(issue, index) in importPreview.errors" :key="index">
+                <strong>{{ issue.line ? `Row ${issue.line}` : 'File' }}:</strong> {{ issue.message }}
               </div>
-          </b-col>
-
-            <b-col md="6" sm="12">
-              <b-button
-                :href="'/import/exemples/import_products.csv'"
-                variant="info"
-                size="sm"
-                block
-              >{{ $t("Download_exemple") }}</b-button>
-            </b-col>
-
-            <b-col md="12" sm="12">
-              <table class="table table-bordered table-sm mt-4">
+              <small v-if="importPreview.error_count > importPreview.errors.length">Showing the first {{ importPreview.errors.length }} issues.</small>
+            </div>
+            <div v-if="importPreview.preview_rows.length" class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead><tr><th>Row</th><th>Code</th><th>Name</th><th>Category</th><th>Unit</th><th>Cost</th><th>Price</th><th>Status</th></tr></thead>
                 <tbody>
-                  <tr>
-                    <td>{{$t('Name_product')}}</td>
-                    <th>
-                      <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
-                    </th>
-                  </tr>
-
-                   <tr>
-                    <td>{{$t('CodeProduct')}}</td>
-                    <th>
-                      <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
-                      {{$t('code_must_be_not_exist_already')}}
-                    </th>
-                  </tr>
-
-                  <tr>
-                    <td>{{$t('Categorie')}}</td>
-                    <th>
-                      <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
-                    </th>
-                  </tr>
-
-                  <tr>
-                    <td>{{$t('ProductCost')}}</td>
-                    <th>
-                      <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
-                    </th>
-                  </tr>
-
-                  <tr>
-                    <td>{{$t('ProductPrice')}}</td>
-                    <th>
-                      <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
-                    </th>
-                  </tr>
-
-                  <tr>
-                    <td>{{$t('UnitProduct')}}</td>
-                    <th>
-                      <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
-                      {{$t('must_be_exist')}} {{$t('Please_use_short_name_of_unit')}}
-                    </th>
-                  </tr>
-
-                  <tr>
-                    <td>{{$t('Brand')}}</td>
-                    <th>
-                      <span class="badge badge-outline-info">{{$t('Field_optional')}}</span>
-                    </th>
-                  </tr>
-
-                  <tr>
-                    <td>{{$t('StockAlert')}}</td>
-                    <th>
-                      <span class="badge badge-outline-info">{{$t('Field_optional')}}</span>
-                    </th>
-                  </tr>
-
-                  <tr>
-                    <td>{{$t('Note')}}</td>
-                    <th>
-                      <span class="badge badge-outline-info">{{$t('Field_optional')}}</span>
-                    </th>
+                  <tr v-for="row in importPreview.preview_rows" :key="row.line">
+                    <td>{{ row.line }}</td><td>{{ row.code }}</td><td>{{ row.name }}</td><td>{{ row.category }}</td><td>{{ row.unit }}</td>
+                    <td>{{ row.cost }}</td><td>{{ row.price }}</td>
+                    <td><b-badge :variant="row.errors.length ? 'danger' : 'success'">{{ row.errors.length ? 'Fix' : 'Ready' }}</b-badge></td>
                   </tr>
                 </tbody>
               </table>
-            </b-col>
-          </b-row>
-        </b-form>
+              <small class="text-muted">Showing up to 20 rows.</small>
+            </div>
+            <b-button v-if="!importPreview.error_count && importPreview.total_rows" variant="success" class="mt-3" :disabled="ImportProcessing" @click="Submit_import">
+              {{ ImportProcessing ? 'Importing...' : `Import ${importPreview.total_rows} ${importPreview.total_rows === 1 ? 'product' : 'products'}` }}
+            </b-button>
+          </div>
+
+        </div>
       </b-modal>
     </div>
   </div>
@@ -314,8 +257,9 @@ export default {
       },
       selectedIds: [],
       ImportProcessing:false,
-      data: new FormData(),
-      import_products: "",
+      import_products: null,
+      importPreview: null,
+      importFileError: "",
       search: "",
       totalRows: "",
       isLoading: true,
@@ -432,66 +376,62 @@ export default {
       this.$bvModal.show("importProducts");
     },
 
-    //------------------------------ Event Import products -------------------------------\\
-    onFileSelected(e) {
-      this.import_products = "";
-      let file = e.target.files[0];
-      let errorFilesize;
-
-      if (file["size"] < 1048576) {
-        // 1 mega = 1,048,576 Bytes
-        errorFilesize = false;
-      } else {
-        this.makeToast(
-          "danger",
-          this.$t("file_size_must_be_less_than_1_mega"),
-          this.$t("Failed")
-        );
+    resetImportPreview() {
+      this.importPreview = null;
+      this.importFileError = "";
+    },
+    resetImport() {
+      this.import_products = null;
+      this.resetImportPreview();
+    },
+    importBody(preview) {
+      const body = new FormData();
+      body.append("products", this.import_products);
+      if (preview) body.append("preview", "1");
+      return body;
+    },
+    showImportError(error) {
+      const response = error && error.response && error.response.data;
+      if (response && response.preview_rows) {
+        this.importPreview = response;
+        return;
       }
-
-      if (errorFilesize === false) {
-        this.import_products = file;
+      this.importFileError = response && response.message
+        ? response.message
+        : "Could not check this file. Please use a CSV smaller than 1 MB.";
+    },
+    previewImport() {
+      this.resetImportPreview();
+      if (!this.import_products) return;
+      if (!/\.csv$/i.test(this.import_products.name) || this.import_products.size > 1048576) {
+        this.importFileError = "Choose a CSV file smaller than 1 MB.";
+        return;
       }
+      this.ImportProcessing = true;
+      axios.post("Products/import/csv", this.importBody(true))
+        .then(response => { this.importPreview = response.data; })
+        .catch(this.showImportError)
+        .finally(() => { this.ImportProcessing = false; });
     },
 
-    //----------------------------------------Submit  import products-----------------\\
     Submit_import() {
-      // Start the progress bar.
+      if (!this.importPreview || this.importPreview.error_count || !this.importPreview.total_rows) return;
       NProgress.start();
       NProgress.set(0.1);
-      var self = this;
-      self.ImportProcessing = true;
-      self.data.append("products", self.import_products);
+      this.ImportProcessing = true;
       axios
-        .post("Products/import/csv", self.data)
+        .post("Products/import/csv", this.importBody(false))
         .then(response => {
-          self.ImportProcessing = false;
-          if (response.data.status === true) {
-            this.makeToast(
-              "success",
-              this.$t("Successfully_Imported"),
-              this.$t("Success")
-            );
-            Fire.$emit("Event_import");
-          } else if (response.data.status === false) {
-            this.makeToast(
-              "danger",
-              this.$t("field_must_be_in_csv_format"),
-              this.$t("Failed")
-            );
-          }
-          // Complete the animation of theprogress bar.
-          NProgress.done();
+          this.makeToast("success", `${response.data.imported} ${response.data.imported === 1 ? 'product' : 'products'} imported.`, this.$t("Success"));
+          Fire.$emit("Event_import");
         })
         .catch(error => {
-          self.ImportProcessing = false;
-          // Complete the animation of theprogress bar.
+          this.showImportError(error);
+          if (!this.importPreview) this.makeToast("danger", this.importFileError, this.$t("Failed"));
+        })
+        .finally(() => {
+          this.ImportProcessing = false;
           NProgress.done();
-          this.makeToast(
-            "danger",
-            this.$t("Please_follow_the_import_instructions"),
-            this.$t("Failed")
-          );
         });
     },
 
@@ -756,3 +696,21 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.import-errors {
+  max-height: 12rem;
+  overflow-y: auto;
+  padding: 0.75rem;
+  border: 1px solid #f3c6c6;
+  border-radius: 0.25rem;
+  background: #fff8f8;
+}
+</style>
+
+<style>
+.modal-dialog.cims-product-import-dialog {
+  max-width: 900px;
+  width: calc(100% - 2rem);
+}
+</style>
