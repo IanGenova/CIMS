@@ -9,9 +9,19 @@ use App\utils\helpers;
 use Carbon\Carbon;
 use DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PermissionsController extends BaseController
 {
+    /** The role editor lists live permissions so new workflows are assignable. */
+    public function catalog(Request $request)
+    {
+        abort_unless($request->user('api')->can('create', Role::class)
+            || $request->user('api')->can('update', Role::class), 403);
+
+        return response()->json(['permissions' => Permission::orderBy('name')
+            ->get(['name', 'label', 'description'])]);
+    }
 
     //----------- GET ALL Roles --------------\\
 
@@ -52,50 +62,18 @@ class PermissionsController extends BaseController
     public function store(Request $request)
     {
         $this->authorizeForUser($request->user('api'), 'create', Role::class);
-
-        try {
-            request()->validate([
-                'role.name' => 'required',
+        $data = $this->validatedRole($request);
+        \DB::transaction(function () use ($data) {
+            $role = Role::create([
+                'name' => trim($data['role']['name']),
+                'label' => trim($data['role']['name']),
+                'status' => 0,
+                'description' => $data['role']['description'] ?? null,
             ]);
-
-            \DB::transaction(function () use ($request) {
-
-                //-- Create New Role
-                $Role = new Role;
-                $Role->name = $request['role']['name'];
-                $Role->label = $request['role']['name'];
-                $Role->status = 0;
-                $Role->description = $request['role']['description'];
-                $Role->save();
-
-                $role = Role::findOrFail($Role->id);
-                $role->permissions()->detach();
-                $permissions = $request->permissions;
-
-                foreach ($permissions as $permission_slug) {
-
-                    //get the permission object by name
-                    $perm = Permission::where('name', $permission_slug)->first();
-                    if ($perm) {
-                        $data[] = $perm->id;
-                    }
-                }
-
-                $role->permissions()->attach($data);
-
-            }, 10);
-
-            return response()->json(['success' => true]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-
-            return response()->json([
-                'status' => 422,
-                'msg' => 'error',
-                'errors' => $e->errors(),
-            ], 422);
-        }
-
+            $role->permissions()->sync(Permission::whereIn('name', $data['permissions'])
+                ->pluck('id')->all());
+        }, 10);
+        return response()->json(['success' => true]);
     }
 
     //------------ function show -----------\\
@@ -110,43 +88,28 @@ class PermissionsController extends BaseController
     public function update(Request $request, $id)
     {
         $this->authorizeForUser($request->user('api'), 'update', Role::class);
+        $role = Role::whereNull('deleted_at')->findOrFail($id);
+        $data = $this->validatedRole($request, $role->id);
+        \DB::transaction(function () use ($role, $data) {
+            $role->name = trim($data['role']['name']);
+            $role->label = $role->name;
+            $role->description = $data['role']['description'] ?? null;
+            $role->save();
+            $role->permissions()->sync(Permission::whereIn('name', $data['permissions'])
+                ->pluck('id')->all());
+        }, 10);
+        return response()->json(['success' => true]);
+    }
 
-        try {
-            request()->validate([
-                'role.name' => 'required',
-            ]);
-
-            \DB::transaction(function () use ($request, $id) {
-
-                Role::whereId($id)->update($request['role']);
-
-                $role = Role::findOrFail($id);
-                $role->permissions()->detach();
-                $permissions = $request->permissions;
-
-                foreach ($permissions as $permission_slug) {
-
-                    //get the permission object by name
-                    $perm = Permission::where('name', $permission_slug)->first();
-                    if ($perm) {
-                        $data[] = $perm->id;
-                    }
-                }
-
-                $role->permissions()->attach($data);
-
-            }, 10);
-
-            return response()->json(['success' => true]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'status' => 422,
-                'msg' => 'error',
-                'errors' => $e->errors(),
-            ], 422);
-        }
-
+    private function validatedRole(Request $request, $id = null)
+    {
+        return $request->validate([
+            'role.name' => ['required', 'string', 'max:191',
+                Rule::unique('roles', 'name')->whereNull('deleted_at')->ignore($id)],
+            'role.description' => 'nullable|string|max:1000',
+            'permissions' => 'present|array',
+            'permissions.*' => 'string|distinct|exists:permissions,name',
+        ]);
     }
 
     //----------- Delete Role --------------\\
@@ -154,8 +117,9 @@ class PermissionsController extends BaseController
     public function destroy(Request $request, $id)
     {
         $this->authorizeForUser($request->user('api'), 'delete', Role::class);
-
-        Role::whereId($id)->update([
+        $role = Role::whereNull('deleted_at')->findOrFail($id);
+        $this->assertUnassigned([$role->id]);
+        Role::whereId($role->id)->update([
             'deleted_at' => Carbon::now(),
         ]);
         return response()->json(['success' => true]);
@@ -165,16 +129,25 @@ class PermissionsController extends BaseController
 
     public function delete_by_selection(Request $request)
     {
-
         $this->authorizeForUser($request->user('api'), 'delete', Role::class);
+        $data = $request->validate(['selectedIds' => 'required|array|min:1',
+            'selectedIds.*' => 'required|integer|distinct|exists:roles,id']);
+        $ids = $data['selectedIds'];
+        $this->assertUnassigned($ids);
+        Role::whereIn('id', $ids)->whereNull('deleted_at')->update(['deleted_at' => Carbon::now()]);
+        return response()->json(['success' => true]);
+    }
 
-        $selectedIds = $request->selectedIds;
-        foreach ($selectedIds as $role_id) {
-            Role::whereId($role_id)->update([
-                'deleted_at' => Carbon::now(),
+    private function assertUnassigned(array $ids)
+    {
+        $assigned = DB::table('users')->whereNull('deleted_at')->whereIn('role_id', $ids)->exists()
+            || DB::table('role_user as ru')->join('users as u', 'u.id', '=', 'ru.user_id')
+                ->whereNull('u.deleted_at')->whereIn('ru.role_id', $ids)->exists();
+        if ($assigned) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'role' => ['Remove this role from all users before deleting it.'],
             ]);
         }
-        return response()->json(['success' => true]);
     }
 
     //----------- Check Create Page --------------\\

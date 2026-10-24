@@ -18,6 +18,7 @@ use App\Models\Setting;
 use App\Models\PosSetting;
 use App\Models\Warehouse;
 use App\utils\BatchService;
+use App\utils\CustomerOrderService;
 use App\utils\VoidService;
 use App\utils\helpers;
 use App\utils\CreditService;
@@ -193,6 +194,8 @@ class SalesController extends BaseController
             'details.*.quantity' => 'required|numeric|gt:0',
             'details.*.subtotal' => 'required|numeric|min:0',
             'details.*.Unit_price' => 'required|numeric|min:0',
+            'customer_order_id' => 'nullable|integer|exists:customer_orders,id',
+            'details.*.customer_order_line_id' => 'nullable|integer',
             'details.*.discount' => 'nullable|numeric|min:0',
             'tax_rate' => 'nullable|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
@@ -236,6 +239,19 @@ class SalesController extends BaseController
         );
         $finalTotal = round($vat['summary']['total_due'] + $totals['tax_net'], 2);
 
+        if ($request->filled('customer_order_id')) {
+            $webOrder = \DB::table('customer_orders')->where('id', $request->customer_order_id)
+                ->where('source_channel', 'web')->first();
+            if ($webOrder && \DB::table('shop_payment_sessions')
+                ->where('customer_order_id', $webOrder->id)->where('status', 'paid')->exists()) {
+                if (abs($finalTotal - (float) $webOrder->quoted_total) > 0.01 || (float) $request['amount'] > 0) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['customer_order_id' => [
+                        'This online order was paid already. Use the exact paid total and do not collect another payment.',
+                    ]]);
+                }
+            }
+        }
+
         // The amount paid is checked against the total we calculated,
         // not against the total the client claimed.
         if ((int) round((float) $request['amount'] * 100) > (int) round($finalTotal * 100)) {
@@ -250,6 +266,17 @@ class SalesController extends BaseController
             CreditService::assertWithinLimit(
                 $request->client_id, $finalTotal, (float) $request['amount']
             );
+        }
+        if ($request->filled('customer_order_id') && $request->statut !== 'completed') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'customer_order_id' => ['A reserved customer order must be fulfilled as a completed sale.'],
+            ]);
+        }
+        if (! $request->filled('customer_order_id') && collect($details)
+            ->contains(fn ($line) => ! empty($line['customer_order_line_id']))) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'customer_order_id' => ['Select the customer order for these reserved lines.'],
+            ]);
         }
 
         try {
@@ -274,6 +301,10 @@ class SalesController extends BaseController
             // cannot slip past the limit at the same moment (DATATEST K11).
             if ($request->statut === 'completed') {
                 CreditService::assertWithinLimit($request->client_id, $finalTotal, (float) $request['amount']);
+            }
+            if ($request->filled('customer_order_id')) {
+                CustomerOrderService::validateSale($request->customer_order_id,
+                    $request->client_id, $request->warehouse_id, $details);
             }
             StockLedger::context('sale', 'Sale', null);
 
@@ -338,6 +369,11 @@ class SalesController extends BaseController
             foreach ($data as $key => $value) {
                 $unit = Unit::where('id', $value['sale_unit_id'])
                     ->first();
+                $claimed = collect();
+                if ($order->statut === 'completed' && $request->filled('customer_order_id')) {
+                    $claimed = CustomerOrderService::consumeLine(
+                        $value['customer_order_line_id'], $order->id, $value['serials'] ?? []);
+                }
                 $orderDetails[] = [
                     'date' => $request->date,
                     'sale_id' => $order->id,
@@ -350,6 +386,7 @@ class SalesController extends BaseController
                     'discount_method' => $value['discount_Method'],
                     'product_id' => $value['product_id'],
                     'product_variant_id' => $value['product_variant_id'],
+                    'customer_order_line_id' => $value['customer_order_line_id'] ?? null,
                     'total' => $totals['lines'][$key]['subtotal'],
                     // Snapshotted like the price: reclassifying a product later
                     // must not restate an invoice already issued.
@@ -384,15 +421,17 @@ class SalesController extends BaseController
                             ? $value['quantity'] / $unit->operator_value
                             : $value['quantity'] * $unit->operator_value;
 
-                        BatchService::allocate(
-                            $value['product_id'],
-                            $value['product_variant_id'],
-                            $order->warehouse_id,
-                            $baseQty,
-                            'sale',
-                            'Sale',
-                            $order->id
-                        );
+                        if ($claimed->isNotEmpty()) {
+                            foreach ($claimed as $reservation) {
+                                BatchService::allocateFromBatch($reservation->product_batch_id,
+                                    $order->warehouse_id, $reservation->quantity,
+                                    'sale', 'Sale', $order->id);
+                            }
+                        } else {
+                            BatchService::allocate(
+                                $value['product_id'], $value['product_variant_id'],
+                                $order->warehouse_id, $baseQty, 'sale', 'Sale', $order->id);
+                        }
 
                     } elseif ($value['product_variant_id'] !== null) {
                         $product_warehouse = product_warehouse::where('deleted_at', '=', null)
@@ -438,6 +477,10 @@ class SalesController extends BaseController
                 }
             }
             SaleDetail::insert($orderDetails);
+            if ($request->filled('customer_order_id')) {
+                CustomerOrderService::finishSale($request->customer_order_id, $order->id);
+                \App\utils\ShopPaymentService::applyToSale($request->customer_order_id, $order, Auth::id());
+            }
 
             $role = Auth::user()->roles()->first();
             $view_records = Role::findOrFail($role->id)->inRole('record_view');

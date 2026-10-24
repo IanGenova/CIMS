@@ -23,7 +23,9 @@ mix.js('resources/src/main.js', 'public').js('resources/src/login.js', 'public')
         output: {
           
             filename:'js/[name].min.js',
-            chunkFilename: 'js/bundle/[name].js',
+            // Hostinger caches JavaScript for a year. Every changed lazy-loaded
+            // chunk needs a new URL so a browser cannot mix releases.
+            chunkFilename: 'js/bundle/[name].[contenthash:8].js',
           },
         plugins: [
             new MomentLocalesPlugin(),

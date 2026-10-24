@@ -44,7 +44,7 @@
                 >
                   <i class="i-Money-2"></i>
                   <span v-if="till">{{ currentUser.currency }} {{ tillExpected }}</span>
-                  <span v-else>{{ $t('TillClosed') }}</span>
+                  <span v-else>{{ tillRequired ? $t('TillClosed') : 'Till optional' }}</span>
                 </div>
 
                 <!-- Full screen toggle -->
@@ -190,6 +190,26 @@
               <b-form @submit.prevent="Submit_Pos">
                 <b-card-body>
                   <b-row>
+                    <!-- Warehouse is the first required step; products and the
+                         scanner depend on its stock and price context. -->
+                    <b-col lg="12" md="12" sm="12">
+                      <validation-provider name="warehouse" :rules="{ required: true}">
+                        <b-form-group slot-scope="{ valid, errors }" class="mt-2" label="Selling location" label-for="pos-warehouse">
+                          <v-select
+                            :class="{'is-invalid': !!errors.length}"
+                            :state="errors[0] ? false : (valid ? true : null)"
+                            :disabled="details.length > 0"
+                            @input="Selected_Warehouse"
+                            v-model="sale.warehouse_id"
+                            :reduce="label => label.value"
+                            input-id="pos-warehouse" aria-label="Selling location"
+                            :placeholder="$t('Choose_Warehouse')"
+                            :options="warehouses.map(warehouses => ({label: warehouses.name, value: warehouses.id}))"
+                          />
+                        </b-form-group>
+                      </validation-provider>
+                    </b-col>
+
                     <!-- Customer -->
                     <b-col lg="12" md="12" sm="12">
                       <validation-provider name="Customer" :rules="{ required: true}">
@@ -199,36 +219,19 @@
                             :state="errors[0] ? false : (valid ? true : null)"
                             v-model="sale.client_id"
                             :reduce="label => label.value"
+                            input-id="pos-customer" aria-label="Customer"
                             :placeholder="$t('Choose_Customer')"
                             class="w-100"
                             :options="clients.map(clients => ({label: clients.name, value: clients.id}))"
                           />
                           <b-input-group-append>
-                            <b-button variant="primary" @click="New_Client()">
+                            <b-button variant="primary" @click="New_Client()" aria-label="Add customer">
                               <span>
                                 <i class="i-Add-User"></i>
                               </span>
                             </b-button>
                           </b-input-group-append>
                         </b-input-group>
-                      </validation-provider>
-                    </b-col>
-
-                    <!-- warehouse -->
-                    <b-col lg="12" md="12" sm="12">
-                      <validation-provider name="warehouse" :rules="{ required: true}">
-                        <b-form-group slot-scope="{ valid, errors }" class="mt-2">
-                          <v-select
-                            :class="{'is-invalid': !!errors.length}"
-                            :state="errors[0] ? false : (valid ? true : null)"
-                            :disabled="details.length > 0"
-                            @input="Selected_Warehouse"
-                            v-model="sale.warehouse_id"
-                            :reduce="label => label.value"
-                            :placeholder="$t('Choose_Warehouse')"
-                            :options="warehouses.map(warehouses => ({label: warehouses.name, value: warehouses.id}))"
-                          />
-                        </b-form-group>
                       </validation-provider>
                     </b-col>
 
@@ -498,10 +501,13 @@
                         </b-button>
                       </b-col>
                       <b-col cols="6">
-                        <b-button type="submit" variant="primary ripple mt-1 btn-rounded btn-block">
+                        <b-button type="submit" variant="primary ripple mt-1 btn-rounded btn-block" :disabled="!sale.warehouse_id || !sale.client_id || !details.length || (tillRequired && !till && !isOffline)" :title="!sale.warehouse_id ? 'Choose a warehouse first' : !sale.client_id ? 'Choose a customer first' : !details.length ? 'Add a product first' : (tillRequired && !till && !isOffline) ? 'Open the till first' : 'Take payment'">
                           <i class="i-Checkout"></i>
                           {{ $t("payNow") }}
                         </b-button>
+                      </b-col>
+                      <b-col cols="12" v-if="!sale.warehouse_id || !sale.client_id || !details.length || (tillRequired && !till && !isOffline)" class="small text-muted mt-2" role="status">
+                        {{ !sale.warehouse_id ? 'Choose a warehouse to start.' : !sale.client_id ? 'Choose a customer.' : !details.length ? 'Scan or select a product to add to the basket.' : 'Open the till before taking payment.' }}
                       </b-col>
                     </b-row>
                   </div>
@@ -656,6 +662,12 @@
         <!-- Card right Of Products -->
         <b-col lg="7">
           <b-card class="list-grid">
+            <div v-if="!sale.warehouse_id" class="pos-warehouse-empty" role="status">
+              <i class="i-Shop" aria-hidden="true"></i>
+              <h2>Choose a selling location</h2>
+              <p>Select the warehouse or branch on the left to load available products and start scanning.</p>
+            </div>
+            <template v-else>
             <b-row>
               <b-col md="6">
                 <button v-b-toggle.sidebar-category class="btn btn-outline-info mt-1 btn-block">
@@ -677,6 +689,7 @@
                  
                   <div id="autocomplete" class="autocomplete">
                     <input
+                     id="pos-product-search" ref="posSearch" aria-label="Scan or search product by code or name"
                      :placeholder="$t('Scan_Search_Product_by_Code_Name')"
                       @keydown="onScanKey"
                       @keyup="search()"
@@ -693,7 +706,11 @@
               <div class="col-md-12 d-flex flex-row flex-wrap bd-highlight list-item mt-2">
                 <div
                   @click="Check_Product_Exist(product , product.id)"
+                  @keydown.enter="Check_Product_Exist(product, product.id)"
+                  @keydown.space.prevent="Check_Product_Exist(product, product.id)"
                   v-for="product in products"
+                  :key="product.id" role="button" tabindex="0"
+                  :aria-label="`Add ${product.name} to basket`"
                   class="card o-hidden bd-highlight m-1"
                 >
                   <div class="list-thumb d-flex" v-if="hasImage(product)">
@@ -735,6 +752,7 @@
                 </b-pagination>
               </b-col>
             </b-row>
+            </template>
           </b-card>
         </b-col>
 
@@ -2709,6 +2727,7 @@ export default {
       // Without this the chip keeps showing the state of whatever warehouse was
       // selected when the page loaded -- which, on a fresh till, is none.
       this.Get_Till();
+      if (value) this.$nextTick(() => { if (this.$refs.posSearch) this.$refs.posSearch.focus(); });
     },
 
     //------------------------------------ Get Products By Warehouse -------------------------\\
@@ -3925,6 +3944,7 @@ export default {
           this.paginate_Brands(this.brand_perPage, 0);
           this.paginate_Category(this.category_perPage, 0);
           this.isLoading = false;
+          if (start !== "") this.$nextTick(() => { if (this.$refs.posSearch) this.$refs.posSearch.focus(); });
         })
         .catch(response => {
           this.isLoading = false;
@@ -4308,6 +4328,11 @@ td.pos-line-total {
 }
 </style>
 <style scoped>
+.pos-warehouse-empty { min-height: 350px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2rem; background: #f5faf8; border: 1px dashed #a8cec0; border-radius: .6rem; color: #194d3d; }
+.pos-warehouse-empty i { font-size: 2rem; margin-bottom: .7rem; }
+.pos-warehouse-empty h2 { font-size: 1.3rem; font-weight: 700; }
+.pos-warehouse-empty p { max-width: 25rem; margin-bottom: 0; }
+.list-item [role="button"]:focus-visible { outline: 3px solid #087a56; outline-offset: 3px; }
 .offline-bar {
   background: rgba(245, 158, 11, 0.15);
   border-bottom: 1px solid rgba(245, 158, 11, 0.4);

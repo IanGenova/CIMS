@@ -1,6 +1,13 @@
 <template>
   <!-- ============ Body content start ============= -->
-  <div class="main-content">
+  <div class="main-content dashboard-main">
+    <header class="dashboard-heading">
+      <div><h1>Operations overview</h1><p>{{ dashboardDate }} · All permitted locations · Figures reflect records your role can view.</p></div>
+      <router-link v-if="currentUserPermissions && currentUserPermissions.includes('Warehouse_report')" to="/app/reports/warehouse_report">View warehouse report</router-link>
+    </header>
+    <div v-if="loading" class="dashboard-loading" role="status">Loading today's operations…</div>
+    <b-alert v-if="loadError" show variant="danger" role="alert">The dashboard could not load. <button type="button" class="btn btn-outline-danger btn-sm ml-2" @click="report_with_echart">Try again</button></b-alert>
+    <div v-if="!loading && !loadError">
     <b-row>
       <!-- ICON BG -->
 
@@ -8,7 +15,7 @@
         <b-card class="card-icon-bg card-icon-bg-primary o-hidden mb-30 text-center">
           <i class="i-Coins"></i>
           <div class="content">
-            <p class="text-muted mt-2 mb-0">{{$t('Revenue')}}</p>
+            <p class="text-muted mt-2 mb-0">{{$t('Revenue')}} today</p>
             <p
               class="text-primary text-24 line-height-1 mb-2"
             >{{currentUser.currency}} {{formatNumber((report_today.revenue?report_today.revenue:0),2)}}</p>
@@ -20,7 +27,7 @@
         <b-card class="card-icon-bg card-icon-bg-primary o-hidden mb-30 text-center">
           <i class="i-Add-Cart"></i>
           <div class="content">
-            <p class="text-muted mt-2 mb-0">{{$t('Purchases')}}</p>
+            <p class="text-muted mt-2 mb-0">{{$t('Purchases')}} today</p>
             <p
               class="text-primary text-24 line-height-1 mb-2"
             >{{currentUser.currency}} {{formatNumber((report_today.today_purchases?report_today.today_purchases:0),2)}}</p>
@@ -32,7 +39,7 @@
         <b-card class="card-icon-bg card-icon-bg-primary o-hidden mb-30 text-center">
           <i class="i-Right-4"></i>
           <div class="content">
-            <p class="text-muted mt-2 mb-0">{{$t('SalesReturn')}}</p>
+            <p class="text-muted mt-2 mb-0">{{$t('SalesReturn')}} today</p>
             <p
               class="text-primary text-24 line-height-1 mb-2"
             >{{currentUser.currency}} {{formatNumber((report_today.return_sales?report_today.return_sales:0),2)}}</p>
@@ -44,7 +51,7 @@
         <b-card class="card-icon-bg card-icon-bg-primary o-hidden mb-30 text-center">
           <i class="i-Financial"></i>
           <div class="content">
-            <p class="text-muted mt-2 mb-0">{{$t('Profit')}}</p>
+            <p class="text-muted mt-2 mb-0">{{$t('Profit')}} today</p>
             <p
               class="text-primary text-24 line-height-1 mb-2"
             >{{currentUser.currency}} {{formatNumber((report_today.profit?report_today.profit:0),2)}}</p>
@@ -61,19 +68,26 @@
             <div v-once class="typo__p text-right" v-if="loading">
               <div class="spinner sm spinner-primary mt-3"></div>
             </div>
-            <v-chart v-if="!loading" :options="echartSales" :autoresize="true"></v-chart>
+            <div v-if="!loading && activeWeekDays <= 1" class="dashboard-sparse-week" role="status">
+              <strong>{{ activeWeekDays ? 'One active day this week' : 'No sales or purchases recorded this week' }}</strong>
+              <span v-if="activeWeekDays">{{ activeWeekLabel }}</span>
+              <div class="dashboard-week-totals"><span>Sales <b>{{ money(weekSalesTotal) }}</b></span><span>Purchases <b>{{ money(weekPurchaseTotal) }}</b></span></div>
+            </div>
+            <v-chart v-if="!loading && activeWeekDays > 1" :options="echartSales" :autoresize="true"></v-chart>
           </div>
         </b-card>
       </b-col>
       <b-col col lg="4" md="12" sm="12">
         <b-card class="mb-30">
-          <h4 class="card-title m-0">{{$t('Top_Selling_Products')}} ({{new Date().getFullYear()}})</h4>
-          <div class="chart-wrapper">
-            <div v-once class="typo__p text-right" v-if="loading">
-              <div class="spinner sm spinner-primary mt-3"></div>
-            </div>
-            <v-chart v-if="!loading" :options="echartProduct" :autoresize="true"></v-chart>
-          </div>
+          <h4 class="card-title m-0">Year-to-date sales leaders <small>by value</small></h4>
+          <div v-if="loading" class="spinner sm spinner-primary mt-3"></div>
+          <div v-else-if="!topYearProducts.length" class="text-muted py-5 text-center">No completed product sales this year.</div>
+          <ol v-else class="top-products-list" aria-label="Top selling products by sales value">
+            <li v-for="product in topYearProducts" :key="product.name">
+              <span :title="product.name">{{ product.name }}</span>
+              <strong>{{ currentUser.currency }} {{ Number(product.value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong>
+            </li>
+          </ol>
         </b-card>
       </b-col>
     </b-row>
@@ -83,20 +97,12 @@
       <div class="col-md-8">
         <div class="card mb-30">
           <div class="card-body p-2">
-            <h5 class="card-title border-bottom p-3 mb-2">{{$t('StockAlert')}}</h5>
-
-            <vue-good-table
-              :columns="columns_stock"
-              styleClass="order-table vgt-table mb-3"
-              row-style-class="text-left"
-              :rows="stock_alerts"
-            >
-              <template slot="table-row" slot-scope="props">
-                <div v-if="props.column.field == 'stock_alert'">
-                  <span class="badge badge-outline-danger">{{props.row.stock_alert}}</span>
-                </div>
-              </template>
-            </vue-good-table>
+            <div class="dashboard-card-title"><h5 class="card-title mb-0">Stock needing attention</h5><router-link v-if="currentUserPermissions && currentUserPermissions.includes('Reports_quantity_alerts')" to="/app/reports/quantity_alerts">View all</router-link></div>
+            <p v-if="!loading && !stock_alerts.length" class="text-muted p-3 mb-0">No out-of-stock or low-stock items found.</p>
+            <div v-for="row in stock_alerts" :key="`${row.code}-${row.warehouse}`" class="stock-attention-row">
+              <div><strong>{{ row.name }}</strong><small>{{ row.code }} · {{ row.warehouse }}</small></div>
+              <div class="text-right"><span :class="row.alert_status === 'out_of_stock' ? 'stock-status-out' : 'stock-status-low'">{{ row.alert_status === 'out_of_stock' ? 'Out of stock' : 'Below reorder point' }}</span><small>On hand {{ formatNumber(row.quantity, 2) }}<template v-if="Number(row.stock_alert) > 0"> · Reorder at {{ formatNumber(row.stock_alert, 2) }}</template></small></div>
+            </div>
           </div>
         </div>
       </div>
@@ -106,7 +112,7 @@
           <div class="card-body p-3">
             <h5
               class="card-title border-bottom p-3 mb-2"
-            >{{$t('Top_Selling_Products')}} ({{CurrentMonth}})</h5>
+            >{{ CurrentMonth }} sales leaders <small>by value</small></h5>
 
             <vue-good-table
               :columns="columns_products"
@@ -119,7 +125,7 @@
                   <span>{{formatNumber(props.row.quantity ,2)}} {{props.row.unit_product}}</span>
                 </div>
                 <div v-else-if="props.column.field == 'total'">
-                  <span>{{currentUser.currency}} {{formatNumber(props.row.total ,2)}}</span>
+                  <span>{{ money(props.row.total) }}</span>
                 </div>
               </template>
             </vue-good-table>
@@ -191,6 +197,7 @@
         </div>
       </div>
     </b-row>
+    </div>
   </div>
   <!-- ============ Body content End ============= -->
 </template>
@@ -225,8 +232,11 @@ export default {
         profit: 0
       },
       products: [],
+      topYearProducts: [],
+      weekSeries: { days: [], sales: [], purchases: [] },
       CurrentMonth: "",
       loading: true,
+      loadError: false,
       echartSales: {},
       echartProduct: {},
       echartCustomer: {},
@@ -251,7 +261,12 @@ export default {
   },
 
   computed: {
-    ...mapGetters(["currentUser", "getThemeMode"]),
+    ...mapGetters(["currentUser", "getThemeMode", "currentUserPermissions"]),
+    dashboardDate() { return new Intl.DateTimeFormat('en-PH', { dateStyle: 'long', timeZone: 'Asia/Manila' }).format(new Date()); },
+    activeWeekDays() { return this.weekSeries.days.filter((_, i) => Number(this.weekSeries.sales[i] || 0) !== 0 || Number(this.weekSeries.purchases[i] || 0) !== 0).length; },
+    activeWeekLabel() { const i = this.weekSeries.days.findIndex((_, n) => Number(this.weekSeries.sales[n] || 0) !== 0 || Number(this.weekSeries.purchases[n] || 0) !== 0); return i < 0 ? '' : this.weekSeries.days[i]; },
+    weekSalesTotal() { return this.weekSeries.sales.reduce((sum, value) => sum + Number(value || 0), 0); },
+    weekPurchaseTotal() { return this.weekSeries.purchases.reduce((sum, value) => sum + Number(value || 0), 0); },
 
     /**
      * ECharts draws its own text, so CSS cannot reach the legend or the axis
@@ -389,9 +404,12 @@ export default {
     }
   },
   methods: {
+    money(value) { return `${(this.currentUser && this.currentUser.currency) || '₱'} ${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; },
     //---------------------------------- Report Dashboard With Echart
     report_with_echart() {
-      axios
+      this.loading = true;
+      this.loadError = false;
+      return axios
         .get(`chart/report_with_echart`)
         .then(response => {
           const responseData = response.data;
@@ -401,11 +419,18 @@ export default {
             response.data.report_dashboard.original.stock_alert;
           this.products = response.data.report_dashboard.original.products;
           this.sales = response.data.report_dashboard.original.last_sales;
+          this.weekSeries = {
+            days: responseData.sales.original.days || [],
+            sales: responseData.sales.original.data || [],
+            purchases: responseData.purchases.original.data || []
+          };
+          this.topYearProducts = (responseData.product_report.original || [])
+            .slice().sort((a, b) => Number(b.value) - Number(a.value)).slice(0, 5);
           var dark_heading = "#c2c6dc";
 
           this.echartCustomer = {
             textStyle: { color: this.chartTextColor },
-            color: ["#6D28D9", "#8B5CF6", "#A78BFA", "#C4B5FD", "#7C3AED"],
+            color: ["#0a7350", "#158f69", "#36a77f", "#73c5a3", "#a3d9c1"],
             tooltip: {
               show: true,
               backgroundColor: "rgba(0, 0, 0, .8)"
@@ -437,6 +462,7 @@ export default {
           };
           this.echartPayment = {
             textStyle: { color: this.chartTextColor },
+            color: ["#0a7350", "#63bb97"],
             tooltip: {
               trigger: "axis"
             },
@@ -478,7 +504,7 @@ export default {
           };
           this.echartProduct = {
             textStyle: { color: this.chartTextColor },
-            color: ["#6D28D9", "#8B5CF6", "#A78BFA", "#C4B5FD", "#7C3AED"],
+            color: ["#0a7350", "#158f69", "#36a77f", "#73c5a3", "#a3d9c1"],
             tooltip: {
               show: true,
               backgroundColor: "rgba(0, 0, 0, .8)"
@@ -578,9 +604,9 @@ export default {
               {
                 name: "Sales",
                 data: responseData.sales.original.data,
-                label: { show: false, color: "#8B5CF6" },
+                label: { show: false, color: "#0a7350" },
                 type: "bar",
-                color: "#A78BFA",
+                color: "#0a7350",
                 smooth: true,
                 itemStyle: {
                   emphasis: {
@@ -598,7 +624,7 @@ export default {
                 label: { show: false, color: "#0168c1" },
                 type: "bar",
                 barGap: 0,
-                color: "#DDD6FE",
+                color: "#a8d6bf",
                 smooth: true,
                 itemStyle: {
                   emphasis: {
@@ -613,7 +639,7 @@ export default {
           };
           this.loading = false;
         })
-        .catch(response => {});
+        .catch(() => { this.loadError = true; this.loading = false; });
     },
 
     //------------------------------Get Month -------------------------\\
@@ -660,3 +686,40 @@ export default {
   }
 };
 </script>
+<style scoped>
+.dashboard-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1.4rem; }
+.dashboard-loading { min-height: 170px; display: grid; place-items: center; background: #f4f8f6; border-radius: 8px; color: #325345; }
+.dashboard-heading h1 { font-size: 1.55rem; font-weight: 700; margin: 0 0 .2rem; }
+.dashboard-heading p { color: #54645e; margin: 0; }
+.dashboard-heading a { font-weight: 600; white-space: nowrap; }
+.dashboard-sparse-week { min-height: 195px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .4rem; text-align: center; color: #34453e; }
+.dashboard-week-totals { display: flex; gap: 1.5rem; margin-top: .8rem; }
+.dashboard-week-totals span, .dashboard-week-totals b { display: block; }
+.dashboard-week-totals b { color: #087a56; font-size: 1.2rem; }
+.dashboard-card-title { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: 1rem; border-bottom: 1px solid #e2e8e7; }
+.stock-attention-row { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border-bottom: 1px solid #edf0f2; }
+.stock-attention-row:last-child { border-bottom: 0; }
+.stock-attention-row small { display: block; color: #54645e; margin-top: .15rem; }
+.stock-status-out { color: #ae2436; font-weight: 700; }
+.stock-status-low { color: #8b5b08; font-weight: 700; }
+.dashboard-main .card-title small { font-size: .73rem; font-weight: 400; color: #54645e; }
+@media (max-width: 575px) { .dashboard-heading { align-items: flex-start; flex-direction: column; } .stock-attention-row { flex-direction: column; gap: .3rem; } .stock-attention-row .text-right { text-align: left !important; } }
+.top-products-list { padding: 0; margin: 1.25rem 0 0; list-style: none; }
+.top-products-list li { display: flex; flex-direction: column; gap: .2rem; padding: .55rem 0; border-bottom: 1px solid #e8edf0; }
+.top-products-list li:last-child { border-bottom: 0; }
+.top-products-list span { overflow-wrap: anywhere; }
+.top-products-list strong { color: #087a56; }
+</style>
+<style>
+@media (min-width: 992px) and (max-width: 1300px) {
+  .main-content-wrap.secondary-sidenav-open .dashboard-main > .row:first-child > .col-lg-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+  .main-content-wrap.secondary-sidenav-open .dashboard-main > .row:nth-child(2) > .col-lg-8,
+  .main-content-wrap.secondary-sidenav-open .dashboard-main > .row:nth-child(2) > .col-lg-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+</style>

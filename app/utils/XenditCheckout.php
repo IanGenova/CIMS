@@ -171,6 +171,12 @@ class XenditCheckout
         return [$response->getStatusCode(), json_decode((string) $response->getBody(), true) ?: []];
     }
 
+    /** Shared authenticated request for order payment sessions. */
+    public static function request($method, $path, array $body = null)
+    {
+        return self::call($method, $path, $body, ['api-version' => self::PAYMENTS_API_VERSION]);
+    }
+
     private static function refused($status, $body, $code = null)
     {
         if ($status === 401) {
@@ -447,6 +453,10 @@ class XenditCheckout
     /** True while a sale holds Xendit money that has not been given back. */
     public static function saleHoldsXenditMoney($saleId)
     {
+        if (DB::table('shop_payment_sessions as s')
+            ->join('customer_orders as o', 'o.id', '=', 's.customer_order_id')
+            ->where('o.sale_id', $saleId)->where('s.status', 'paid')
+            ->whereNull('s.refund_status')->exists()) return true;
         return DB::table('xendit_checkouts as x')
             ->join('payment_sales as p', 'p.id', '=', 'x.payment_sale_id')
             ->where('x.sale_id', $saleId)

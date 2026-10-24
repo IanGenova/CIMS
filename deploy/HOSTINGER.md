@@ -39,10 +39,18 @@ also remain enabled.
    `public_html/storage` directory. Apply new code and static assets, then run
    `php -d newrelic.enabled=0 artisan migrate --force` and clear Laravel's
    configuration and view caches. Do not run `config:cache`.
-4. Keep only web assets in `public_html`, patch its `index.php` to use the
+4. Copy **every file from the current build's `public/js/bundle`**, including
+   numbered chunks such as `0.<hash>.js` and `125.<hash>.js`. Do not use
+   `mix-manifest.json` as the upload list: Webpack's unnamed async chunks are
+   absent from it. A missing `0.<hash>.js` leaves the app on its loading
+   spinner even though `/login` and `main.min.js` return HTTP 200. Preserve
+   older hashed chunks until existing browser sessions have refreshed.
+5. Keep only web assets in `public_html`, patch its `index.php` to use the
    private app, and retain the New Relic setting in `.htaccess`. Check
-   `https://pos.naspintech.com/login`, static assets, login, and the scheduler
-   heartbeat. Make public assets readable (`644` files, `755` directories).
+   `https://pos.naspintech.com/login` and the dashboard in an authenticated
+   browser. Confirm the current numbered and named chunks return JavaScript,
+   not a 200 HTML fallback. Check the scheduler heartbeat. Make public assets
+   readable (`644` files, `755` directories).
 
 The VPS-only scripts in this folder require root, Nginx, and systemd and do
 not apply to Hostinger shared hosting.

@@ -37,7 +37,7 @@
             data-item="products"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'products'">
               <i class="nav-icon i-Library-2"></i>
               <span class="nav-text">{{$t('Products')}}</span>
             </a>
@@ -55,7 +55,7 @@
             data-item="adjustments"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'adjustments'">
               <i class="nav-icon i-Edit-Map"></i>
               <span class="nav-text">{{$t('StockAdjustement')}}</span>
             </a>
@@ -70,7 +70,7 @@
             data-item="transfers"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'transfers'">
               <i class="nav-icon i-Back"></i>
               <span class="nav-text">{{$t('StockTransfers')}}</span>
             </a>
@@ -89,7 +89,7 @@
             data-item="purchases"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'purchases'">
               <i class="nav-icon i-Receipt"></i>
               <span class="nav-text">{{$t('Purchases')}}</span>
             </a>
@@ -104,7 +104,7 @@
             data-item="sales"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'sales'">
               <i class="nav-icon i-Full-Cart"></i>
               <span class="nav-text">{{$t('Sales')}}</span>
             </a>
@@ -119,7 +119,7 @@
             data-item="quotations"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'quotations'">
               <i class="nav-icon i-File-Copy"></i>
               <span class="nav-text">{{$t('Quotations')}}</span>
             </a>
@@ -134,7 +134,7 @@
             data-item="sale_return"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'sale_return'">
               <i class="nav-icon i-Right"></i>
               <span class="nav-text">{{$t('SalesReturn')}}</span>
             </a>
@@ -149,7 +149,7 @@
             data-item="purchase_return"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'purchase_return'">
               <i class="nav-icon i-Left"></i>
               <span class="nav-text">{{$t('PurchasesReturn')}}</span>
             </a>
@@ -166,7 +166,7 @@
             data-item="expenses"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'expenses'">
               <i class="nav-icon i-Money-Bag"></i>
               <span class="nav-text">{{$t('Expenses')}}</span>
             </a>
@@ -177,12 +177,12 @@
                         ||currentUserPermissions.includes('Suppliers_view')
                         ||currentUserPermissions.includes('users_view'))"
             @mouseenter="toggleSubMenu"
-            :class="{ active: selectedParentMenu == 'People' }"
+            :class="{ active: selectedParentMenu == 'people' }"
             class="nav-item"
-            data-item="People"
+            data-item="people"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'people'">
               <i class="nav-icon i-Business-Mens"></i>
               <span class="nav-text">{{$t('People')}}</span>
             </a>
@@ -205,7 +205,7 @@
             data-item="settings"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'settings'">
               <i class="nav-icon i-Data-Settings"></i>
               <span class="nav-text">{{$t('Settings')}}</span>
             </a>
@@ -234,7 +234,7 @@
             data-item="reports"
             :data-submenu="true"
           >
-            <a class="nav-item-hold" href="#">
+            <a class="nav-item-hold" href="#" role="button" aria-haspopup="true" @click.prevent.stop="toggleSubMenu" @keydown.space.prevent="toggleSubMenu" :aria-expanded="getSideBarToggleProperties.isSecondarySideNavOpen &amp;&amp; selectedParentMenu === 'reports'">
               <i class="nav-icon i-Line-Chart"></i>
               <span class="nav-text">{{$t('Reports')}}</span>
             </a>
@@ -298,6 +298,12 @@
             <router-link tag="a" class to="/app/products/batches">
               <i class="nav-icon i-Split-Vertical"></i>
               <span class="item-name">{{$t('Batches')}}</span>
+            </router-link>
+          </li>
+          <li class="nav-item" v-if="currentUserPermissions && currentUserPermissions.includes('products_view') && currentUser && currentUser.all_warehouses">
+            <router-link tag="a" class to="/app/products/traceability">
+              <i class="nav-icon i-Magnifi-Glass1"></i>
+              <span class="item-name">Trace Explorer</span>
             </router-link>
           </li>
           <li
@@ -384,6 +390,12 @@
             <router-link tag="a" class to="/app/transfers/list">
               <i class="nav-icon i-Files"></i>
               <span class="item-name">{{$t('ListTransfers')}}</span>
+            </router-link>
+          </li>
+          <li class="nav-item" v-if="currentUserPermissions && currentUserPermissions.includes('transfer_view')">
+            <router-link tag="a" class to="/app/transfers/branch_requests">
+              <i class="nav-icon i-Files"></i>
+              <span class="item-name">Branch Requests</span>
             </router-link>
           </li>
         </ul>
@@ -499,6 +511,12 @@
               <span class="item-name">{{$t('ListSales')}}</span>
             </router-link>
           </li>
+          <li class="nav-item" v-if="currentUserPermissions && currentUserPermissions.includes('Sales_view')">
+            <router-link tag="a" class to="/app/sales/customer_orders">
+              <i class="nav-icon i-Files"></i>
+              <span class="item-name">Customer Orders & Pre-orders</span>
+            </router-link>
+          </li>
           <li
             class="nav-item"
             v-if="currentUserPermissions && currentUserPermissions.includes('Sales_view')"
@@ -587,8 +605,8 @@
 
         <ul
           class="childNav d-none"
-          data-parent="People"
-          :class="{ 'd-block': selectedParentMenu == 'People' }"
+          data-parent="people"
+          :class="{ 'd-block': selectedParentMenu == 'people' }"
         >
           <li
             class="nav-item"
@@ -641,6 +659,12 @@
             <router-link tag="a" class to="/app/settings/Warehouses">
               <i class="nav-icon i-Clothing-Store"></i>
               <span class="item-name">{{$t('Warehouses')}}</span>
+            </router-link>
+          </li>
+          <li class="nav-item" v-if="currentUserPermissions && currentUserPermissions.includes('setting_system')">
+            <router-link tag="a" class to="/app/settings/OnlineShop">
+              <i class="nav-icon i-Shopping-Bag"></i>
+              <span class="item-name">Online Shop</span>
             </router-link>
           </li>
           <li
@@ -788,8 +812,8 @@
           :class="{ 'd-block': selectedParentMenu == 'reports' }"
         >
 
-          <li
-            class="nav-item"
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_profit') || currentUserPermissions.includes('Customers_view') || currentUserPermissions.includes('accounting') || currentUserPermissions.includes('Pos_view'))"><button type="button" :aria-expanded="reportGroups.finance" @click.stop="toggleReportGroup('finance')">Finance &amp; till <span>{{ reportGroups.finance ? '−' : '+' }}</span></button></li>
+          <li class="nav-item" v-show="reportGroups.finance"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_profit')"
           >
             <router-link tag="a" class to="/app/reports/profit_and_loss">
@@ -797,8 +821,7 @@
               <span class="item-name">{{$t('ProfitandLoss')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.finance"
             v-if="currentUserPermissions && currentUserPermissions.includes('Customers_view')"
           >
             <router-link tag="a" class to="/app/reports/customer_credit">
@@ -806,8 +829,7 @@
               <span class="item-name">{{$t('CustomerCredit')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.finance"
             v-if="currentUserPermissions && currentUserPermissions.includes('accounting')"
           >
             <router-link tag="a" class to="/app/reports/trial_balance">
@@ -815,8 +837,7 @@
               <span class="item-name">{{$t('TrialBalance')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.finance"
             v-if="currentUserPermissions && currentUserPermissions.includes('Pos_view')"
           >
             <router-link tag="a" class to="/app/reports/till_sessions">
@@ -824,8 +845,8 @@
               <span class="item-name">{{$t('TillSessions')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_quantity_alerts') || currentUserPermissions.includes('Warehouse_report'))"><button type="button" :aria-expanded="reportGroups.inventory" @click.stop="toggleReportGroup('inventory')">Inventory <span>{{ reportGroups.inventory ? '−' : '+' }}</span></button></li>
+          <li class="nav-item" v-show="reportGroups.inventory"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_quantity_alerts')"
           >
             <router-link tag="a" class to="/app/reports/stock_movements">
@@ -833,8 +854,7 @@
               <span class="item-name">{{$t('StockMovements')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.inventory"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_quantity_alerts')"
           >
             <router-link tag="a" class to="/app/reports/stock_valuation">
@@ -842,8 +862,7 @@
               <span class="item-name">{{$t('StockValuation')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.inventory"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_quantity_alerts')"
           >
             <router-link tag="a" class to="/app/reports/quantity_alerts">
@@ -852,8 +871,7 @@
             </router-link>
           </li>
 
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.inventory"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_quantity_alerts')"
           >
             <router-link tag="a" class to="/app/reports/expiry_report">
@@ -862,8 +880,7 @@
             </router-link>
           </li>
 
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.inventory"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_quantity_alerts')"
           >
             <router-link tag="a" class to="/app/reports/reorder">
@@ -871,8 +888,7 @@
               <span class="item-name">{{$t('ReorderSuggestions')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.inventory"
             v-if="currentUserPermissions && currentUserPermissions.includes('Warehouse_report')"
           >
             <router-link tag="a" class to="/app/reports/warehouse_report">
@@ -880,8 +896,8 @@
               <span class="item-name">{{$t('Warehouse_report')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_sales') || currentUserPermissions.includes('Reports_purchase'))"><button type="button" :aria-expanded="reportGroups.sales" @click.stop="toggleReportGroup('sales')">Sales &amp; purchasing <span>{{ reportGroups.sales ? '−' : '+' }}</span></button></li>
+          <li class="nav-item" v-show="reportGroups.sales"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_sales')"
           >
             <router-link tag="a" class to="/app/reports/sales_report">
@@ -889,8 +905,15 @@
               <span class="item-name">{{$t('SalesReport')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.sales"
+            v-if="currentUserPermissions && currentUserPermissions.includes('Reports_sales')"
+          >
+            <router-link tag="a" class to="/app/reports/product_sales_analytics">
+              <i class="nav-icon i-Line-Chart2"></i>
+              <span class="item-name">Product Sales Analytics</span>
+            </router-link>
+          </li>
+          <li class="nav-item" v-show="reportGroups.sales"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_purchase')"
           >
             <router-link tag="a" class to="/app/reports/purchase_report">
@@ -898,8 +921,8 @@
               <span class="item-name">{{$t('PurchasesReport')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_customers') || currentUserPermissions.includes('Reports_suppliers'))"><button type="button" :aria-expanded="reportGroups.people" @click.stop="toggleReportGroup('people')">Customers &amp; suppliers <span>{{ reportGroups.people ? '−' : '+' }}</span></button></li>
+          <li class="nav-item" v-show="reportGroups.people"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_customers')"
           >
             <router-link tag="a" class to="/app/reports/customers_report">
@@ -907,8 +930,7 @@
               <span class="item-name">{{$t('CustomersReport')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.people"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_suppliers')"
           >
             <router-link tag="a" class to="/app/reports/providers_report">
@@ -916,8 +938,8 @@
               <span class="item-name">{{$t('SuppliersReport')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_payments_Sales') || currentUserPermissions.includes('Reports_payments_Purchases') || currentUserPermissions.includes('Reports_payments_Sale_Returns') || currentUserPermissions.includes('Reports_payments_purchase_Return'))"><button type="button" :aria-expanded="reportGroups.payments" @click.stop="toggleReportGroup('payments')">Payments <span>{{ reportGroups.payments ? '−' : '+' }}</span></button></li>
+          <li class="nav-item" v-show="reportGroups.payments"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_payments_Sales')"
           >
             <router-link tag="a" class to="/app/reports/payments_sale">
@@ -925,8 +947,7 @@
               <span class="item-name">{{$t('PaymentsSales')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.payments"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_payments_Purchases')"
           >
             <router-link tag="a" class to="/app/reports/payments_purchase">
@@ -934,8 +955,7 @@
               <span class="item-name">{{$t('PaymentsPurchases')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.payments"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_payments_Sale_Returns')"
           >
             <router-link tag="a" class to="/app/reports/payments_sales_returns">
@@ -943,8 +963,7 @@
               <span class="item-name">{{$t('payments_Sales_Return')}}</span>
             </router-link>
           </li>
-          <li
-            class="nav-item"
+          <li class="nav-item" v-show="reportGroups.payments"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_payments_purchase_Return')"
           >
             <router-link tag="a" class to="/app/reports/payments_purchases_returns">
@@ -988,8 +1007,9 @@ export default {
       isMenuOver: false,
       isStyle: true,
       selectedParentMenu: "",
+      reportGroups: { finance: false, inventory: false, sales: false, people: false, payments: false },
       isMobile,
-      isNarrow: window.innerWidth <= 1200
+      isNarrow: window.innerWidth < 992
     };
   },
   mounted() {
@@ -1005,7 +1025,7 @@ export default {
   },
 
   computed: {
-    ...mapGetters(["getSideBarToggleProperties", "currentUserPermissions"])
+    ...mapGetters(["getSideBarToggleProperties", "currentUserPermissions", "currentUser"])
   },
 
   methods: {
@@ -1018,8 +1038,8 @@ export default {
     ]),
 
     handleWindowResize() {
-      this.isNarrow = window.innerWidth <= 1200;
-      if (window.innerWidth <= 1200) {
+      this.isNarrow = window.innerWidth < 992;
+      if (this.isNarrow) {
         if (this.getSideBarToggleProperties.isSideNavOpen) {
           this.changeSidebarProperties();
         }
@@ -1036,15 +1056,18 @@ export default {
       const currentParentUrl = this.$route.path
         .split("/")
         .filter(x => x !== "")[1];
-      if (currentParentUrl !== undefined || currentParentUrl !== null) {
+      if (currentParentUrl !== undefined && currentParentUrl !== null) {
         this.selectedParentMenu = currentParentUrl.toLowerCase();
+        if (this.selectedParentMenu === 'reports') this.expandCurrentReportGroup();
       } else {
         this.selectedParentMenu = "dashboard";
       }
     },
     toggleSubMenu(e) {
-      let hasSubmenu = e.target.dataset.submenu;
-      let parent = e.target.dataset.item;
+      const item = e.currentTarget.closest("li[data-item]");
+      if (!item) return;
+      let hasSubmenu = item.dataset.submenu;
+      let parent = item.dataset.item;
 
       if (hasSubmenu) {
         this.selectedParentMenu = parent;
@@ -1055,6 +1078,18 @@ export default {
         this.changeSecondarySidebarPropertiesViaMenuItem(false);
       }
     },
+    toggleReportGroup(group) {
+      this.$set(this.reportGroups, group, !this.reportGroups[group]);
+    },
+    expandCurrentReportGroup() {
+      const path = this.$route.path;
+      const group = /profit_and_loss|customer_credit|trial_balance|till_sessions/.test(path) ? 'finance'
+        : /stock_movements|stock_valuation|quantity_alerts|expiry_report|reorder|warehouse_report/.test(path) ? 'inventory'
+        : /sales_report|product_sales_analytics|purchase_report/.test(path) ? 'sales'
+        : /customers_report|providers_report/.test(path) ? 'people'
+        : /payments_/.test(path) ? 'payments' : null;
+      if (group) this.$set(this.reportGroups, group, true);
+    },
 
     // Close, never toggle: the overlay can now be tapped with only the main
     // drawer open, and a toggle would have opened the second-level menu.
@@ -1062,7 +1097,7 @@ export default {
       if (this.getSideBarToggleProperties.isSecondarySideNavOpen) {
         this.changeSecondarySidebarPropertiesViaOverlay();
       }
-      if (window.innerWidth <= 1200) {
+      if (this.isNarrow) {
         this.setSidebarOpen(false);
       }
       this.toggleSelectedParentMenu();
@@ -1086,6 +1121,16 @@ export default {
 };
 </script>
 
-<style lang="" scoped>
+<style scoped>
+.report-group {
+  padding: 3px 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.report-group button { display: flex; justify-content: space-between; width: 100%; padding: 12px 10px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; letter-spacing: inherit; text-align: left; text-transform: inherit; cursor: pointer; }
+.report-group button:hover, .report-group button:focus-visible { background: #edf5f2; color: #075b42; outline: 2px solid #0b6f52; outline-offset: -2px; }
 </style>
 

@@ -37,6 +37,13 @@
         </b-col>
       </b-row>
 
+      <div v-if="!purchase_id" class="receipt-empty-state" role="status">
+        <h5 class="mb-2">Start with a purchase order</h5>
+        <p class="mb-2">Choose an approved order above to see the items still awaiting delivery.</p>
+        <p class="text-muted mb-0">Then record received and rejected quantities, add batch or serial details where required, and save the receipt. Products marked for QC stay on hold until an approver releases them.</p>
+        <router-link v-if="!purchases.length" to="/app/purchases" class="btn btn-outline-primary btn-sm mt-3">View purchase orders</router-link>
+      </div>
+
       <!-- Approval is enforced server-side too; showing it here saves a round trip -->
       <b-alert
         variant="warning"
@@ -69,6 +76,7 @@
               <tr v-for="(line, i) in details" :key="line.purchase_detail_id">
                 <td>
                   <span class="text-muted">{{ line.code }}</span><br>{{ line.name }}
+                  <div v-if="line.requires_qc" class="text-warning small">QC hold: received units require approval before sale</div>
                 </td>
                 <td class="text-right">{{ line.ordered_qte }}</td>
                 <td class="text-right">{{ line.outstanding }}</td>
@@ -127,7 +135,7 @@
           variant="primary"
           :disabled="SubmitProcessing"
           @click="Submit"
-        >{{ $t('Submit') }}</b-button>
+        >Save goods receipt</b-button>
         <div v-once class="typo__p" v-if="SubmitProcessing">
           <div class="spinner sm spinner-primary mt-3"></div>
         </div>
@@ -299,3 +307,6 @@ export default {
   }
 };
 </script>
+<style scoped>
+.receipt-empty-state { margin-top: 1rem; padding: 2rem; border: 1px dashed #cbd5d9; border-radius: .5rem; background: #f8fbfa; max-width: 780px; }
+</style>

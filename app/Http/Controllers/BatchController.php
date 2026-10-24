@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\Warehouse;
 use App\utils\BatchService;
+use App\utils\WarehouseAccess;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,11 +51,18 @@ class BatchController extends BaseController
             ->get();
 
         $warehouseId = $request->input('warehouse_id');
+        $allowedWarehouses = WarehouseAccess::allowedIds();
+        if ($warehouseId && ! WarehouseAccess::allows($warehouseId)) {
+            abort(403);
+        }
         $inStockOnly = $request->boolean('in_stock_only', true);
 
         $rows = [];
         foreach ($batches as $batch) {
             $qte = BatchStock::where('product_batch_id', $batch->id)
+                ->when($allowedWarehouses !== null, function ($q) use ($allowedWarehouses) {
+                    return $q->whereIn('warehouse_id', $allowedWarehouses ?: [0]);
+                })
                 ->when($warehouseId, function ($q) use ($warehouseId) {
                     return $q->where('warehouse_id', $warehouseId);
                 })
@@ -73,6 +81,7 @@ class BatchController extends BaseController
             $rows[] = [
                 'id' => $batch->id,
                 'batch_number' => $batch->batch_number,
+                'source_receipt_detail_id' => $batch->source_receipt_detail_id,
                 'product_id' => $batch->product_id,
                 'product' => $batch->product ? $batch->product->name : '(deleted product)',
                 'code' => $batch->product ? $batch->product->code : null,
@@ -187,12 +196,44 @@ class BatchController extends BaseController
     public function trace(Request $request, $id)
     {
         $this->authorizeForUser($request->user('api'), 'view', Product::class);
+        abort_if(WarehouseAccess::isRestricted(), 403, 'Network trace requires access to all warehouses.');
 
-        $batch = ProductBatch::with(['product', 'provider'])->findOrFail($id);
+        $batch = ProductBatch::with(['product', 'provider', 'sourceReceiptDetail.goodsReceipt.purchase.provider',
+            'sourceReceiptDetail.qcDecider'])->findOrFail($id);
+        $sourceLine = $batch->sourceReceiptDetail;
+        $sourceReceipt = $sourceLine ? $sourceLine->goodsReceipt : null;
+        $sourcePurchase = $sourceReceipt ? $sourceReceipt->purchase : null;
 
         $movements = BatchMovement::where('product_batch_id', $id)
             ->orderBy('id', 'asc')
             ->get();
+
+        $warehouseNames = Warehouse::withoutGlobalScope(\App\Models\Scopes\UserWarehouseScope::class)
+            ->pluck('name', 'id');
+        $userNames = DB::table('users')->whereIn('id', $movements->pluck('user_id')->filter()->unique())
+            ->pluck('username', 'id');
+        $referenceNames = [];
+        foreach (['Sale' => 'sales', 'Transfer' => 'transfers', 'BranchShipment' => 'branch_shipments',
+            'GoodsReceipt' => 'goods_receipts', 'SaleReturn' => 'sale_returns',
+            'PurchaseReturn' => 'purchase_returns', 'Adjustment' => 'adjustments'] as $type => $table) {
+            $ids = $movements->where('reference_type', $type)->pluck('reference_id')->filter()->unique();
+            if ($ids->isNotEmpty()) {
+                $referenceNames[$type] = DB::table($table)->whereIn('id', $ids)->pluck('Ref', 'id');
+            }
+        }
+
+        $saleIds = $movements->where('reference_type', 'Sale')->pluck('reference_id')->filter()->unique();
+        $saleCustomers = $saleIds->isEmpty() ? collect() : DB::table('sales as s')
+            ->leftJoin('clients as c', 'c.id', '=', 's.client_id')
+            ->whereIn('s.id', $saleIds)->pluck('c.name', 's.id');
+
+        $labelFor = function ($type, $referenceId) use ($referenceNames) {
+            if (! $type || ! $referenceId) {
+                return null;
+            }
+            $ref = isset($referenceNames[$type]) ? $referenceNames[$type]->get($referenceId) : null;
+            return $type . ' ' . ($ref ?: '#' . $referenceId);
+        };
 
         $history = [];
         foreach ($movements as $movement) {
@@ -202,11 +243,16 @@ class BatchController extends BaseController
                 'type' => $movement->movement_type,
                 'qte' => (float) $movement->qte,
                 'warehouse_id' => $movement->warehouse_id,
+                'warehouse' => $warehouseNames->get($movement->warehouse_id),
+                'by' => $userNames->get($movement->user_id),
                 'reference' => $movement->reference_type
                     ? $movement->reference_type . ' #' . $movement->reference_id
                     : null,
                 'reference_type' => $movement->reference_type,
                 'reference_id' => $movement->reference_id,
+                'reference_label' => $labelFor($movement->reference_type, $movement->reference_id),
+                'customer' => $movement->reference_type === 'Sale'
+                    ? $saleCustomers->get($movement->reference_id) : null,
             ];
         }
 
@@ -217,11 +263,14 @@ class BatchController extends BaseController
             ->select('reference_type', 'reference_id', DB::raw('SUM(qte) as total'))
             ->groupBy('reference_type', 'reference_id')
             ->get()
-            ->map(function ($row) {
+            ->map(function ($row) use ($labelFor, $saleCustomers) {
                 return [
                     'reference_type' => $row->reference_type,
                     'reference_id' => $row->reference_id,
                     'qte' => abs((float) $row->total),
+                    'reference_label' => $labelFor($row->reference_type, $row->reference_id),
+                    'customer' => $row->reference_type === 'Sale'
+                        ? $saleCustomers->get($row->reference_id) : null,
                 ];
             });
 
@@ -249,10 +298,33 @@ class BatchController extends BaseController
                 'supplier' => $batch->provider ? $batch->provider->name : null,
                 'cost' => $batch->cost === null ? null : (float) $batch->cost,
                 'notes' => $batch->notes,
+                'source' => $sourceLine ? [
+                    'goods_receipt_detail_id' => $sourceLine->id,
+                    'goods_receipt_id' => $sourceReceipt ? $sourceReceipt->id : null,
+                    'goods_receipt_ref' => $sourceReceipt ? $sourceReceipt->Ref : null,
+                    'goods_receipt_date' => $sourceReceipt ? $sourceReceipt->date : null,
+                    'purchase_detail_id' => $sourceLine->purchase_detail_id,
+                    'purchase_id' => $sourcePurchase ? $sourcePurchase->id : null,
+                    'purchase_ref' => $sourcePurchase ? $sourcePurchase->Ref : null,
+                    'supplier' => $sourcePurchase && $sourcePurchase->provider ? $sourcePurchase->provider->name : null,
+                    'qc_status' => $sourceLine->qc_status,
+                    'qc_passed_qte' => (float) $sourceLine->qc_passed_qte,
+                    'qc_failed_qte' => (float) $sourceLine->qc_failed_qte,
+                    'qc_decider' => $sourceLine->qcDecider ? $sourceLine->qcDecider->username : null,
+                    'qc_decided_at' => optional($sourceLine->qc_decided_at)->toDateTimeString(),
+                    'qc_notes' => $sourceLine->qc_notes,
+                    'receiving_warehouse' => $sourceReceipt
+                        ? $warehouseNames->get($sourceReceipt->warehouse_id) : null,
+                ] : null,
             ],
             'stock_on_hand' => $stock,
             'consumed_by' => $consumers,
             'movements' => $history,
+            'reconciliation' => [
+                'movement_balance' => round((float) $movements->sum('qte'), 6),
+                'stock_balance' => round((float) $stock->sum('qte'), 6),
+                'in_sync' => abs((float) $movements->sum('qte') - (float) $stock->sum('qte')) < 0.000001,
+            ],
         ]);
     }
 
@@ -268,6 +340,14 @@ class BatchController extends BaseController
 
         $product = Product::findOrFail($id);
         $enabling = $request->boolean('has_batches');
+
+        if ($enabling !== (bool) $product->has_batches
+            && \DB::table('goods_receipt_details')->where('product_id', $product->id)
+                ->where('qc_status', 'pending')->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'has_batches' => ['Finish QC on this product’s held receipts before changing batch tracking.'],
+            ]);
+        }
 
         // Not on over untracked stock (it would belong to no lot), and not off
         // while lots still hold stock (DATATEST K22).

@@ -296,6 +296,7 @@ class PaymentSalesController extends BaseController
         // payment disappears. Where Xendit cannot refund (QR Ph, over the
         // counter), the cashier refunds by hand and says so.
         $xendit = XenditCheckout::forPayment($payment->id);
+        $shopPayment = \App\utils\ShopPaymentService::forPayment($payment->id);
         if ($xendit) {
             if ($request->boolean('refunded_outside')) {
                 XenditCheckout::markRefundedOutside($xendit);
@@ -308,6 +309,13 @@ class PaymentSalesController extends BaseController
                         'code' => 'XENDIT_REFUND_REFUSED',
                     ], 422);
                 }
+            }
+        }
+        if ($shopPayment) {
+            try {
+                \App\utils\ShopPaymentService::refund($shopPayment, $request->boolean('refunded_outside'));
+            } catch (\Illuminate\Validation\ValidationException | XenditException $e) {
+                return response()->json(['message' => $e->getMessage() . ' The payment was kept.'], 422);
             }
         }
 

@@ -100,6 +100,8 @@ class XenditController extends Controller
 
         try {
             XenditCheckout::handleWebhook($request->all());
+            $shopSession = $request->input('data.payment_session_id');
+            if ($shopSession) \App\utils\ShopPaymentService::handleWebhook($shopSession);
             // One address for the whole account: GCash/Maya charges made at
             // the till (App\utils\WalletPaymentService) are settled from here too.
             if (empty($request->input('data.payment_session_id'))) {

@@ -44,6 +44,7 @@
             <i class="i-Add"></i>
             {{$t('Add')}}
           </b-button>
+          <router-link v-if="currentUserPermissions && currentUserPermissions.includes('permissions_view')" class="btn btn-sm btn-outline-primary m-1" to="/app/Settings/Permissions">Group Permissions</router-link>
         </div>
 
         <template slot="table-row" slot-scope="props">
@@ -60,7 +61,7 @@
 
           <div v-else-if="props.column.field == 'statut'">
             <label class="switch switch-primary mr-3">
-              <input @change="isChecked(props.row)" type="checkbox" v-model="props.row.statut">
+              <input @change="isChecked(props.row)" type="checkbox" v-model="props.row.statut" :disabled="!currentUserPermissions || !currentUserPermissions.includes('users_edit')" :aria-label="'Active status for ' + props.row.username">
               <span class="slider"></span>
             </label>
           </div>
@@ -106,6 +107,12 @@
                            {label: 'Inactif', value: '0'}
                         ]"
               ></v-select>
+            </b-form-group>
+          </b-col>
+
+          <b-col md="12">
+            <b-form-group label="Role">
+              <b-form-select v-model="Filter_Role" :options="[{ value: '', text: 'All roles' }].concat(roles.map(role => ({ value: role.id, text: role.name })))" />
             </b-form-group>
           </b-col>
 
@@ -319,6 +326,7 @@
                     :placeholder="$t('LeaveBlank')"
                     label="New password"
                     v-model="user.NewPassword"
+                    type="password"
                   ></b-form-input>
                   <b-form-invalid-feedback
                     id="Nawpassword-feedback"
@@ -373,6 +381,7 @@ export default {
       Filter_Email: "",
       Filter_status: "",
       Filter_Phone: "",
+      Filter_Role: "",
       permissions: {},
       users: [],
       roles: [],
@@ -427,6 +436,13 @@ export default {
         {
           label: this.$t("Phone"),
           field: "phone",
+          tdClass: "text-left",
+          thClass: "text-left"
+        },
+        {
+          label: "Role",
+          field: "role_name",
+          sortable: false,
           tdClass: "text-left",
           thClass: "text-left"
         },
@@ -530,6 +546,7 @@ export default {
       this.Filter_status = "";
       this.Filter_Phone = "";
       this.Filter_Email = "";
+      this.Filter_Role = "";
       this.Get_Users(this.serverParams.page);
     },
 
@@ -545,6 +562,7 @@ export default {
 
     //------ Checked Status User
     isChecked(user) {
+      const previous = !user.statut;
       axios
         .put("users/Activated/" + user.id, {
           statut: user.statut,
@@ -568,7 +586,7 @@ export default {
               );
             }
           } else {
-            user.statut = 1;
+            user.statut = previous;
             this.makeToast(
               "warning",
               this.$t("Delete.Therewassomethingwronge"),
@@ -577,7 +595,7 @@ export default {
           }
         })
         .catch(error => {
-          user.statut = 1;
+          user.statut = previous;
           this.makeToast(
             "warning",
             this.$t("Delete.Therewassomethingwronge"),
@@ -645,26 +663,12 @@ export default {
       NProgress.set(0.1);
       this.setToStrings();
       axios
-        .get(
-          "users?page=" +
-            page +
-            "&name=" +
-            this.Filter_Name +
-            "&statut=" +
-            this.Filter_status +
-            "&phone=" +
-            this.Filter_Phone +
-            "&email=" +
-            this.Filter_Email +
-            "&SortField=" +
-            this.serverParams.sort.field +
-            "&SortType=" +
-            this.serverParams.sort.type +
-            "&search=" +
-            this.search +
-            "&limit=" +
-            this.limit
-        )
+        .get("users", { params: {
+          page, name: this.Filter_Name, statut: this.Filter_status,
+          phone: this.Filter_Phone, email: this.Filter_Email,
+          role_id: this.Filter_Role, SortField: this.serverParams.sort.field,
+          SortType: this.serverParams.sort.type, search: this.search, limit: this.limit
+        } })
         .then(response => {
           this.users = response.data.users;
           this.roles = response.data.roles;
@@ -732,6 +736,7 @@ export default {
     Create_User() {
       var self = this;
       self.SubmitProcessing = true;
+      self.data = new FormData();
       self.data.append("firstname", self.user.firstname);
       self.data.append("lastname", self.user.lastname);
       self.data.append("username", self.user.username);
@@ -758,10 +763,10 @@ export default {
         })
         .catch(error => {
           self.SubmitProcessing = false;
-          if (error.errors.email.length > 0) {
-            self.email_exist = error.errors.email[0];
-          }
-          this.makeToast("danger", this.$t("InvalidData"), this.$t("Failed"));
+          const data = error.response && error.response.data;
+          self.email_exist = data && data.errors && data.errors.email ? data.errors.email[0] : "";
+          const first = data && data.errors && Object.values(data.errors)[0];
+          this.makeToast("danger", (first && first[0]) || (data && data.message) || this.$t("InvalidData"), this.$t("Failed"));
         });
     },
 
@@ -769,6 +774,7 @@ export default {
     Update_User() {
       var self = this;
       self.SubmitProcessing = true;
+      self.data = new FormData();
       self.data.append("firstname", self.user.firstname);
       self.data.append("lastname", self.user.lastname);
       self.data.append("username", self.user.username);
@@ -795,10 +801,10 @@ export default {
           self.SubmitProcessing = false;
         })
         .catch(error => {
-          if (error.errors.email.length > 0) {
-            self.email_exist = error.errors.email[0];
-          }
-          this.makeToast("danger", this.$t("InvalidData"), this.$t("Failed"));
+          const data = error.response && error.response.data;
+          self.email_exist = data && data.errors && data.errors.email ? data.errors.email[0] : "";
+          const first = data && data.errors && Object.values(data.errors)[0];
+          this.makeToast("danger", (first && first[0]) || (data && data.message) || this.$t("InvalidData"), this.$t("Failed"));
           self.SubmitProcessing = false;
         });
     },

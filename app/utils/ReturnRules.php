@@ -22,6 +22,7 @@ class ReturnRules
         if (! $sale) {
             self::fail('sale_id', 'Choose the sale this return comes from.');
         }
+        WarehouseAccess::assertAllows($sale->warehouse_id);
         if ((int) $sale->client_id !== (int) $clientId) {
             self::fail('sale_id', "Sale {$sale->Ref} was not made to this customer.");
         }
@@ -45,6 +46,7 @@ class ReturnRules
         if (! $purchase) {
             self::fail('purchase_id', 'That purchase does not exist.');
         }
+        WarehouseAccess::assertAllows($purchase->warehouse_id);
         if ((int) $purchase->provider_id !== (int) $providerId) {
             self::fail('purchase_id', "Purchase {$purchase->Ref} is from another supplier.");
         }

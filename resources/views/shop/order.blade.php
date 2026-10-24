@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><title>Order {{ $order->Ref }} · {{ $shopName }}</title><link rel="stylesheet" href="{{ asset('css/shop.css') }}?v={{ filemtime(public_path('css/shop.css')) }}"></head>
+<body class="receipt-page"><header class="topbar"><a href="/shop" class="brand"><span class="brand-icon">N</span><span>{{ $shopName }}</span></a><a href="/shop" class="back-link">← Continue shopping</a></header>
+<main class="receipt-wrap"><div class="eyebrow">YOUR ORDER</div><h1>Thank you for ordering.</h1><p class="receipt-lead">Keep this private link to check the latest status of your order.</p>
+@if(session('payment_error'))<div class="error">{{ session('payment_error') }}</div>@endif
+<section class="receipt-card"><div class="receipt-heading"><div><span>Reference</span><strong>{{ $order->Ref }}</strong></div><span class="status-pill">{{ str_replace('_', ' ', ucfirst($order->status)) }}</span></div>
+    <div class="receipt-lines">@foreach($lines as $line)<div><span><strong>{{ $line->name }}@if($line->variant) · {{ $line->variant }}@endif</strong><small>{{ $line->code }} · {{ number_format($line->display_quantity, 2) }} {{ $line->unit }} · {{ str_replace('_',' ',$line->status) }}</small></span><strong>₱{{ number_format($line->display_quantity * $line->unit_price, 2) }}</strong></div>@endforeach</div>
+    <div class="receipt-total"><span>Order total</span><strong>₱{{ number_format($order->quoted_total, 2) }}</strong></div>
+    <div class="receipt-meta"><span>Payment choice</span><strong>{{ ucwords(str_replace('_',' ', $order->checkout_payment_method)) }}</strong></div>
+    <div class="receipt-meta"><span>Receiving method</span><strong>{{ $order->fulfillment_method === 'store_pickup' ? 'Store pickup' : 'Delivery' }}</strong></div>
+    @if($order->fulfillment_status)<div class="receipt-meta"><span>Fulfillment progress</span><strong>{{ ucwords(str_replace('_',' ', $order->fulfillment_status)) }}</strong></div>@endif
+    @if($order->tracking_reference)<div class="receipt-meta"><span>Carrier / tracking</span><strong>{{ $order->shipping_carrier ?: 'Carrier to confirm' }} · {{ $order->tracking_reference }}</strong></div>@endif
+    @if($order->checkout_payment_method === 'xendit')
+        <div class="receipt-meta"><span>Online payment</span><strong>{{ $payment ? ($payment->refund_status ? 'Refund ' . strtolower($payment->refund_status) : ucfirst($payment->status)) : 'Not started' }}</strong></div>
+        @if(in_array($order->status, ['reserved'], true) && (!$payment || in_array($payment->status, ['pending','failed'], true)))<form action="/shop/order/{{ $token }}/pay" method="post">@csrf<button class="button button-dark full" type="submit">{{ $payment && $payment->status === 'pending' ? 'Continue payment' : 'Pay securely with Xendit' }} →</button></form>@endif
+        @if($payment && $payment->status === 'review')<p class="error">We are checking this payment with Xendit. Please contact the store before trying again.</p>@endif
+        @if($payment && $payment->status === 'pending')<p class="fineprint">If you have just paid, refresh this page to confirm your payment status.</p>@endif
+    @endif
+    @if(in_array($order->status, ['pending_stock','reserved'], true) && (!$payment || !in_array($payment->status, ['pending','creating','review','paid'], true)))<form action="/shop/order/{{ $token }}/cancel" method="post" onsubmit="return confirm('Cancel this order and release its reserved stock?')">@csrf<button class="text-button" type="submit">Cancel this order</button></form>@endif
+</section><p class="fineprint center">For delivery details or refunds, contact the store and quote your reference number.</p></main></body></html>

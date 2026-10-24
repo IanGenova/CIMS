@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptDetail;
+use App\Models\ProductBatch;
 use App\Models\product_warehouse;
 use App\Models\Purchase;
 use App\Models\PurchaseDetail;
 use App\Models\Unit;
 use App\utils\BatchService;
+use App\utils\QcService;
+use App\utils\SerialService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -158,6 +161,7 @@ class GoodsReceiptController extends BaseController
                 'has_batches' => BatchService::isTracked($detail->product_id),
                 // And whether to ask for serials: one per base unit received.
                 'has_serials' => \App\utils\SerialService::isTracked($detail->product_id),
+                'requires_qc' => QcService::isRequired($detail->product_id),
                 'base_units_per' => $this->toBaseQty($detail, 1),
             ];
         }
@@ -234,6 +238,7 @@ class GoodsReceiptController extends BaseController
             ]);
 
             $counted = 0;
+            $pendingQc = false;
             foreach ($request['details'] as $line) {
                 $received = (float) $line['received_qte'];
                 $rejected = (float) ($line['rejected_qte'] ?? 0);
@@ -268,7 +273,9 @@ class GoodsReceiptController extends BaseController
                     ]);
                 }
 
-                GoodsReceiptDetail::create([
+                $needsQc = $received > 0 && QcService::isRequired($detail->product_id);
+                $pendingQc = $pendingQc || $needsQc;
+                $receiptLine = GoodsReceiptDetail::create([
                     'goods_receipt_id' => $receipt->id,
                     'purchase_detail_id' => $detail->id,
                     'product_id' => $detail->product_id,
@@ -278,6 +285,8 @@ class GoodsReceiptController extends BaseController
                     'received_qte' => $received,
                     'rejected_qte' => $rejected,
                     'notes' => $line['notes'] ?? null,
+                    'qc_status' => $needsQc ? 'pending' : 'not_required',
+                    'qc_passed_qte' => $needsQc ? 0 : $received,
                 ]);
 
                 if ($received > 0) {
@@ -301,26 +310,31 @@ class GoodsReceiptController extends BaseController
                             'manufacture_date' => $line['manufacture_date'] ?? null,
                             'provider_id' => $purchase->provider_id,
                             'cost' => $detail->cost,
+                            'source_receipt_detail_id' => $receiptLine->id,
                         ]);
 
-                        // receive() lifts the warehouse total itself, so the
-                        // plain stock write is skipped here.
-                        BatchService::receive(
-                            $batch->id,
-                            $purchase->warehouse_id,
-                            $this->toBaseQty($detail, $received),
-                            'receipt',
-                            'GoodsReceipt',
-                            $receipt->id
-                        );
+                        // The lot identity exists while held, but only a QC
+                        // release may lift sellable stock for flagged goods.
+                        if (! $needsQc) {
+                            BatchService::receive(
+                                $batch->id,
+                                $purchase->warehouse_id,
+                                $this->toBaseQty($detail, $received),
+                                'receipt',
+                                'GoodsReceipt',
+                                $receipt->id
+                            );
+                        }
                     } else {
                         // Serial-tracked: each unit arriving is named.
-                        if (\App\utils\SerialService::isTracked($detail->product_id)) {
-                            \App\utils\SerialService::receive($detail->product_id, $detail->product_variant_id,
+                        if (SerialService::isTracked($detail->product_id)) {
+                            SerialService::receive($detail->product_id, $detail->product_variant_id,
                                 $purchase->warehouse_id, $line['serials'] ?? [], $this->toBaseQty($detail, $received),
-                                'GoodsReceipt', $receipt->id);
+                                'GoodsReceipt', $receipt->id, $receiptLine->id, $needsQc ? 'qc_hold' : 'in_stock');
                         }
-                        $this->addToStock($purchase->warehouse_id, $detail, $received);
+                        if (! $needsQc) {
+                            $this->addToStock($purchase->warehouse_id, $detail, $received, $receiptLine->id);
+                        }
                     }
 
                     $detail->received_qte = (float) $detail->received_qte + $received;
@@ -334,6 +348,11 @@ class GoodsReceiptController extends BaseController
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'details' => ['Enter what arrived: receive or reject at least one item.'],
                 ]);
+            }
+
+            if ($pendingQc) {
+                $receipt->status = 'pending_qc';
+                $receipt->save();
             }
 
             $this->refreshPurchaseStatus($purchase);
@@ -358,7 +377,7 @@ class GoodsReceiptController extends BaseController
         $receipt = GoodsReceipt::with(['purchase', 'warehouse', 'user'])->findOrFail($id);
 
         $lines = [];
-        foreach ($receipt->details()->with('product')->get() as $line) {
+        foreach ($receipt->details()->with(['product', 'qcDecider'])->get() as $line) {
             $lines[] = [
                 'id' => $line->id,
                 'code' => $line->product ? $line->product->code : null,
@@ -367,6 +386,50 @@ class GoodsReceiptController extends BaseController
                 'received_qte' => (float) $line->received_qte,
                 'rejected_qte' => (float) $line->rejected_qte,
                 'notes' => $line->notes,
+                'qc_status' => $line->qc_status,
+                'qc_passed_qte' => (float) $line->qc_passed_qte,
+                'qc_failed_qte' => (float) $line->qc_failed_qte,
+                'qc_decided_by' => $line->qc_decided_by,
+                'qc_decider' => $line->qcDecider ? $line->qcDecider->username : null,
+                'qc_decided_at' => optional($line->qc_decided_at)->toDateTimeString(),
+                'qc_notes' => $line->qc_notes,
+                'qc_dispositions' => \DB::table('goods_receipt_qc_dispositions as q')
+                    ->leftJoin('users as requester', 'requester.id', '=', 'q.requested_by')
+                    ->leftJoin('users as approver', 'approver.id', '=', 'q.decided_by')
+                    ->leftJoin('users as executor', 'executor.id', '=', 'q.executed_by')
+                    ->where('q.goods_receipt_detail_id', $line->id)->orderBy('q.id')
+                    ->get(['q.id', 'q.action', 'q.quantity', 'q.status', 'q.reason',
+                        'q.serial_numbers',
+                        'q.requested_by', 'requester.username as requester',
+                        'approver.username as approver', 'q.decision_reason',
+                        'q.created_at', 'q.decided_at', 'q.execution_reference',
+                        'q.execution_note', 'q.executed_at',
+                        'executor.username as executor']),
+                'qc_custody' => \DB::table('qc_rejected_custody')
+                    ->where('source_type', 'goods_receipt_detail')->where('source_id', $line->id)
+                    ->orderBy('id')->get(['id', 'original_quantity', 'remaining_quantity',
+                        'location', 'status', 'product_serial_id'])
+                    ->map(function ($custody) {
+                        $custody->events = \DB::table('qc_custody_events as e')
+                            ->leftJoin('users as u', 'u.id', '=', 'e.actor_id')
+                            ->where('e.custody_id', $custody->id)->orderBy('e.id')
+                            ->get(['e.event', 'e.quantity', 'e.from_location', 'e.to_location',
+                                'e.reference_type', 'e.reference_id', 'e.note',
+                                'e.created_at', 'u.username as actor']);
+                        return $custody;
+                    }),
+                'qc_disposition_remaining' => max(0, (float) $line->qc_failed_qte -
+                    (float) \DB::table('goods_receipt_qc_dispositions')
+                        ->where('goods_receipt_detail_id', $line->id)
+                        ->whereIn('status', ['pending', 'approved', 'executed'])->sum('quantity')),
+                'qc_failed_serials' => SerialService::isTracked($line->product_id)
+                    ? \DB::table('product_serials')->where('source_receipt_detail_id', $line->id)
+                        ->where('status', 'qc_rejected')->orderBy('id')->pluck('serial_number')->all()
+                    : [],
+                'qc_serials' => $line->qc_status === 'pending' && SerialService::isTracked($line->product_id)
+                    ? \DB::table('product_serials')->where('source_receipt_detail_id', $line->id)
+                        ->orderBy('id')->pluck('serial_number')->all() : [],
+                'base_units_per' => $this->toBaseQty(PurchaseDetail::findOrFail($line->purchase_detail_id), 1),
             ];
         }
 
@@ -386,6 +449,102 @@ class GoodsReceiptController extends BaseController
         ]);
     }
 
+    /** Release passed quantity into stock; failed quantity remains unavailable. */
+    public function decideQc(Request $request, $id)
+    {
+        $this->authorizeForUser($request->user('api'), 'approveQc', GoodsReceipt::class);
+        $request->validate([
+            'receipt_detail_id' => 'required|integer',
+            'passed_qte' => 'required|numeric|min:0',
+            'failed_qte' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:5000',
+            'accepted_serials' => 'nullable|array',
+            'accepted_serials.*' => 'string|max:100',
+            'hold_location' => 'nullable|string|max:120',
+        ]);
+
+        \DB::transaction(function () use ($request, $id) {
+            $receipt = GoodsReceipt::where('id', $id)->lockForUpdate()->firstOrFail();
+            $line = GoodsReceiptDetail::where('goods_receipt_id', $receipt->id)
+                ->where('id', $request->receipt_detail_id)->lockForUpdate()->firstOrFail();
+            if ($receipt->status === 'cancelled' || $line->qc_status !== 'pending') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'qc' => ['This receipt line is not awaiting a QC decision.'],
+                ]);
+            }
+
+            $passed = (float) $request->passed_qte;
+            $failed = (float) $request->failed_qte;
+            if (abs($passed + $failed - (float) $line->received_qte) > 0.000001) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'qc' => ['Passed plus failed quantity must equal the received quantity.'],
+                ]);
+            }
+            if ($failed > 0 && ! $request->filled('notes')) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'notes' => ['Record a reason for goods that fail QC.'],
+                ]);
+            }
+            if ($failed > 0 && ! trim((string) $request->hold_location)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'hold_location' => ['Record the physical QC hold location for failed goods.'],
+                ]);
+            }
+
+            $purchaseDetail = PurchaseDetail::where('id', $line->purchase_detail_id)
+                ->lockForUpdate()->firstOrFail();
+
+            if (BatchService::isTracked($line->product_id)) {
+                $batch = ProductBatch::where('source_receipt_detail_id', $line->id)->firstOrFail();
+                if ($passed > 0) {
+                    BatchService::receive($batch->id, $receipt->warehouse_id,
+                        $this->toBaseQty($purchaseDetail, $passed), 'qc_release', 'GoodsReceipt', $receipt->id);
+                }
+            } else {
+                if (SerialService::isTracked($line->product_id)) {
+                    SerialService::inspectReceipt($line->id, $request->input('accepted_serials', []),
+                        $this->toBaseQty($purchaseDetail, $passed), $receipt->id);
+                }
+                if ($passed > 0) {
+                    $this->addToStock($receipt->warehouse_id, $purchaseDetail, $passed, $line->id);
+                }
+            }
+
+            $purchaseDetail->received_qte = max(0, (float) $purchaseDetail->received_qte - $failed);
+            $purchaseDetail->save();
+
+            $line->fill([
+                'qc_status' => $failed <= 0 ? 'passed' : ($passed <= 0 ? 'failed' : 'partial'),
+                'qc_passed_qte' => $passed,
+                'qc_failed_qte' => $failed,
+                'qc_decided_by' => Auth::id(),
+                'qc_decided_at' => now(),
+                'qc_notes' => $request->notes,
+            ]);
+            $line->save();
+            if ($failed > 0) {
+                $serialIds = SerialService::isTracked($line->product_id)
+                    ? \DB::table('product_serials')->where('source_receipt_detail_id', $line->id)
+                        ->where('status', 'qc_rejected')->pluck('id')->all() : [];
+                $batchId = BatchService::isTracked($line->product_id)
+                    ? ProductBatch::where('source_receipt_detail_id', $line->id)->value('id') : null;
+                \App\utils\QcCustodyService::recordFailure('goods_receipt_detail', $line->id,
+                    $receipt->warehouse_id, $line->product_id, $line->product_variant_id,
+                    $batchId, $serialIds, $this->toBaseQty($purchaseDetail, $failed),
+                    trim($request->hold_location), Auth::id(), $request->notes);
+            }
+
+            if (! $receipt->details()->where('qc_status', 'pending')->exists()) {
+                $receipt->status = 'received';
+                $receipt->save();
+            }
+            $purchase = Purchase::findOrFail($receipt->purchase_id);
+            $this->refreshPurchaseStatus($purchase);
+        }, 10);
+
+        return response()->json(['success' => true]);
+    }
+
     /**
      * Reverse a posted receipt: take the stock back out and restore the
      * outstanding quantity on the order.
@@ -395,6 +554,21 @@ class GoodsReceiptController extends BaseController
         $this->authorizeForUser($request->user('api'), 'delete', GoodsReceipt::class);
 
         GoodsReceipt::findOrFail($id);
+        if (\DB::table('goods_receipt_qc_dispositions as q')
+            ->join('goods_receipt_details as d', 'd.id', '=', 'q.goods_receipt_detail_id')
+            ->where('d.goods_receipt_id', $id)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'qc' => ['This receipt has a disposition history. Keep it for audit and correct stock through a separate document.'],
+            ]);
+        }
+        if (\DB::table('qc_rejected_custody as c')
+            ->join('goods_receipt_details as d', 'd.id', '=', 'c.source_id')
+            ->where('c.source_type', 'goods_receipt_detail')
+            ->where('d.goods_receipt_id', $id)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'qc' => ['This receipt has rejected-goods custody history. Keep it for audit and correct stock through a separate document.'],
+            ]);
+        }
 
         \DB::transaction(function () use ($id) {
             // Re-read under a lock: two undo requests at once each found the
@@ -423,10 +597,14 @@ class GoodsReceiptController extends BaseController
 
                 if ($detail) {
                     if (! BatchService::isTracked($detail->product_id)) {
-                        $this->addToStock($receipt->warehouse_id, $detail, -1 * (float) $line->received_qte);
+                        if ((float) $line->qc_passed_qte > 0) {
+                            $this->addToStock($receipt->warehouse_id, $detail,
+                                -1 * (float) $line->qc_passed_qte, $line->id);
+                        }
                     }
 
-                    $detail->received_qte = max(0, (float) $detail->received_qte - (float) $line->received_qte);
+                    $credited = (float) $line->received_qte - (float) $line->qc_failed_qte;
+                    $detail->received_qte = max(0, (float) $detail->received_qte - $credited);
                     $detail->save();
                 }
             }
@@ -459,7 +637,7 @@ class GoodsReceiptController extends BaseController
         return $quantity * ($unit ? $unit->operator_value : 1);
     }
 
-    private function addToStock($warehouseId, PurchaseDetail $detail, $quantity)
+    private function addToStock($warehouseId, PurchaseDetail $detail, $quantity, $receiptLineId)
     {
         $unit = Unit::find($detail->purchase_unit_id);
 
@@ -481,7 +659,7 @@ class GoodsReceiptController extends BaseController
             ? ($netCost * (float) $quantity) / $baseQty
             : $netCost;
 
-        StockLedger::context('goods_receipt', 'PurchaseDetail', $detail->id, [
+        StockLedger::context('goods_receipt', 'GoodsReceiptDetail', $receiptLineId, [
             'unit_cost' => $unitCost,
             'notes' => 'Received against purchase ' . $detail->purchase_id,
         ]);
@@ -501,6 +679,13 @@ class GoodsReceiptController extends BaseController
             $stock->product_id = $detail->product_id;
             $stock->product_variant_id = $detail->product_variant_id;
             $stock->qte = 0;
+        }
+
+        if ($baseQty < 0 && (float) $stock->qte + $baseQty < -0.000001) {
+            StockLedger::clear();
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'stock' => ['Some units from this receipt have already left the warehouse. Reverse those movements before cancelling it.'],
+            ]);
         }
 
         if ($unit && $unit->operator == '/') {
@@ -527,11 +712,15 @@ class GoodsReceiptController extends BaseController
             return;
         }
 
+        $pendingQc = GoodsReceiptDetail::where('qc_status', 'pending')
+            ->whereHas('goodsReceipt', function ($query) use ($purchase) {
+                $query->where('purchase_id', $purchase->id);
+            })->exists();
         $outstanding = PurchaseDetail::where('purchase_id', $purchase->id)
             ->whereRaw('quantity > received_qte')
             ->count();
 
-        $purchase->statut = $outstanding === 0 ? 'received' : 'pending';
+        $purchase->statut = ! $pendingQc && $outstanding === 0 ? 'received' : 'pending';
         $purchase->save();
     }
 

@@ -12,7 +12,7 @@ class Product extends Model
     protected $fillable = [
         'code', 'Type_barcode', 'name', 'cost', 'price', 'unit_id', 'unit_sale_id', 'unit_purchase_id',
         'stock_alert', 'category_id', 'sub_category_id', 'is_variant',
-        'tax_method', 'image', 'brand_id', 'is_active', 'note', 'reorder_qte', 'preferred_provider_id', 'has_batches', 'expiry_alert_days',
+        'tax_method', 'image', 'brand_id', 'is_active', 'note', 'reorder_qte', 'preferred_provider_id', 'has_batches', 'expiry_alert_days', 'requires_qc', 'web_published',
         'TaxNet', 'tax_group_id',
     ];
 
@@ -25,6 +25,7 @@ class Product extends Model
         'is_variant' => 'integer',
         'brand_id' => 'integer',
         'is_active' => 'integer',
+        'web_published' => 'boolean',
         'cost' => 'double',
         'price' => 'double',
         'stock_alert' => 'double',

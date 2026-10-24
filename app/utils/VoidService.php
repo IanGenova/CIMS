@@ -60,6 +60,9 @@ class VoidService
         if ($sale->statut !== 'completed') {
             return 'not_completed';
         }
+        if (XenditCheckout::saleHoldsXenditMoney($sale->id)) {
+            return 'xendit_paid';
+        }
         // Goods already came back on it: a void would restock them twice (DATATEST K5).
         if (DB::table('sale_returns')->where('sale_id', $sale->id)->whereNull('deleted_at')->exists()) {
             return 'has_returns';
@@ -92,6 +95,7 @@ class VoidService
             'shift_closed' => 'That shift has already been counted down. Use a sale return instead.',
             'has_returns' => 'Goods have already come back on this sale. Delete that return first, or return the rest instead of voiding.',
             'not_today' => 'That sale was not made today. Use a sale return instead.',
+            'xendit_paid' => 'Refund the Xendit payment before voiding this sale.',
         ];
 
         return $messages[$code] ?? 'That sale cannot be voided.';
@@ -191,6 +195,17 @@ class VoidService
                 'payment_statut' => 'unpaid',
                 'updated_at' => now(),
             ]);
+
+            // Keep the customer promise linked to the cancelled sale for audit.
+            // Its reservation was consumed when sold; a void restores physical
+            // stock but must not silently reopen the old promise.
+            $affectedOrders = DB::table('customer_orders')->where('sale_id', $saleId)->pluck('id');
+            DB::table('customer_orders')->where('sale_id', $saleId)->update([
+                'status' => 'sale_voided', 'updated_at' => now(),
+            ]);
+            foreach ($affectedOrders as $orderId) {
+                CustomerOrderService::notifyStatus($orderId);
+            }
 
             // Written straight to the table, so the observer never saw it (K60).
             \App\Observers\AuditObserver::record(\App\Models\Sale::class, $saleId, 'voided',

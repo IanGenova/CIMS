@@ -92,6 +92,9 @@ class DeliveryController extends Controller
             ->whereNull('s.deleted_at')
             ->where('s.statut', 'completed')
             ->whereNull('d.id')
+            ->when(\App\utils\WarehouseAccess::isRestricted(), function ($q) {
+                return $q->whereIn('s.warehouse_id', \App\utils\WarehouseAccess::allowedIds());
+            })
             ->orderByDesc('s.id')->limit(200)
             ->select('s.id', 's.Ref', 's.date', 's.GrandTotal', 's.warehouse_id',
                 's.client_id', 'c.name as client', 'c.adresse')
@@ -109,24 +112,23 @@ class DeliveryController extends Controller
             'date' => 'required|date',
         ]);
 
-        $sale = Sale::findOrFail($request->sale_id);
+        \DB::transaction(function () use ($request) {
+            // Serialize competing dispatch requests for the same sale. The
+            // duplicate check must run while this row is locked.
+            $sale = Sale::whereKey($request->sale_id)->lockForUpdate()->firstOrFail();
 
-        if ($sale->statut !== 'completed') {
-            throw ValidationException::withMessages([
-                'sale_id' => ['Only a completed sale can be dispatched.'],
-            ]);
-        }
+            if ($sale->statut !== 'completed') {
+                throw ValidationException::withMessages([
+                    'sale_id' => ['Only a completed sale can be dispatched.'],
+                ]);
+            }
 
-        $exists = Delivery::where('sale_id', $request->sale_id)
-            ->where('deleted_at', '=', null)->exists();
+            if (Delivery::where('sale_id', $sale->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'sale_id' => ['That sale already has a delivery against it.'],
+                ]);
+            }
 
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'sale_id' => ['That sale already has a delivery against it.'],
-            ]);
-        }
-
-        \DB::transaction(function () use ($request, $sale) {
             $delivery = Delivery::create([
                 'Ref' => $this->nextRef(),
                 'sale_id' => $sale->id,

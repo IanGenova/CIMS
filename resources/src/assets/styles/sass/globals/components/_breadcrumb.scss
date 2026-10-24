@@ -1,7 +1,7 @@
 .breadcrumb {
     background: transparent;
     align-items: center;
-    margin: 0 0 1.25rem;
+    margin: 0 0 1rem;
     padding: 0;
     h1 {
         font-size: 1.5rem;
@@ -21,21 +21,7 @@
             line-height: 1;
             vertical-align: bottom;
             color: $gray-600;
-            &:after {
-                position: absolute;
-                top: -1px;
-                right: 0;
-                content: "";
-                height: 16px;
-                width: 1px;
-                background: $gray-600;
-                border-radius: 5px;
-            }
-            &:last-child {
-                &:after {
-                    display: none;
-                }
-            }
+            &:before { content: "/"; margin-right: .75rem; color: $gray-600; }
             a {
                 color: $heading;
             }

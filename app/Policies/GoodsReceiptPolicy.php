@@ -25,6 +25,11 @@ class GoodsReceiptPolicy
         return $this->allows($user, 'goods_receipt_edit');
     }
 
+    public function approveQc(User $user)
+    {
+        return $this->allows($user, 'goods_receipt_qc_approve');
+    }
+
     public function delete(User $user)
     {
         return $this->allows($user, 'goods_receipt_delete');

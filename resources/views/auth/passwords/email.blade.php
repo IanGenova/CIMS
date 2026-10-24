@@ -32,7 +32,7 @@
         <forgot-component></forgot-component>
       </div>
 
-      <script src="/js/login.min.js"></script>
+      <script src="/js/login.min.js?v={{ filemtime(public_path('js/login.min.js')) }}"></script>
   </body>
 </html>
 

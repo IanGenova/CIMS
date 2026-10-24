@@ -25,6 +25,7 @@ class WebhookService
             'delivery.dispatched', 'delivery.delivered',
             'production.completed',
             'payment.received',
+            'customer_order.status',
         ];
     }
 

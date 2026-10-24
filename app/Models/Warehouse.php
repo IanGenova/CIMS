@@ -9,7 +9,7 @@ class Warehouse extends Model
     protected $dates = ['deleted_at'];
 
     protected $fillable = [
-        'name', 'mobile', 'country', 'city', 'email', 'zip',
+        'code', 'name', 'site_type', 'mobile', 'country', 'city', 'email', 'zip',
     ];
 
     /**

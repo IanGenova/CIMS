@@ -48,6 +48,8 @@ class UserController extends BaseController
             if (!$ShowRecord) {
                 return $query->where('id', '=', Auth::user()->id);
             }
+        })->when($request->filled('role_id'), function ($query) use ($request) {
+            return $query->where('role_id', $request->role_id);
         });
 
         //Multiple Filter
@@ -69,10 +71,12 @@ class UserController extends BaseController
             ->get();
 
         $roles = Role::where('deleted_at', null)->get(['id', 'name']);
+        $roleNames = $roles->pluck('name', 'id');
 
         // Which warehouses each person may work in (UserWarehouseTest).
         $assigned = \DB::table('user_warehouse')->whereIn('user_id', $users->pluck('id'))->get()->groupBy('user_id');
         foreach ($users as $u) {
+            $u->role_name = $roleNames->get($u->role_id, 'Unassigned');
             $u->all_warehouses = (bool) ($u->all_warehouses ?? true);
             $u->warehouse_ids = $assigned->get($u->id, collect())->pluck('warehouse_id')->map(fn ($id) => (int) $id)->values()->all();
         }
@@ -259,7 +263,8 @@ class UserController extends BaseController
             $user = User::findOrFail($id);
             $current = $user->password;
 
-            if ($request->NewPassword != 'null') {
+            if ($request->filled('NewPassword')
+                && ! in_array($request->NewPassword, ['null', 'undefined'], true)) {
                 if ($request->NewPassword != $current) {
                     // Same rules as the user's own change screen, and the same
                     // history, so a reset cannot quietly reinstate a password
@@ -276,7 +281,7 @@ class UserController extends BaseController
             }
 
             $currentAvatar = $user->avatar;
-            if ($request->avatar != $currentAvatar) {
+            if ($request->hasFile('avatar')) {
 
                 $image = $request->file('avatar');
                 $path = public_path() . '/images/avatar';
@@ -362,7 +367,7 @@ class UserController extends BaseController
         }
 
         $currentAvatar = $user->avatar;
-        if ($request->avatar != $currentAvatar) {
+        if ($request->hasFile('avatar')) {
 
             $image = $request->file('avatar');
             $path = public_path() . '/images/avatar';

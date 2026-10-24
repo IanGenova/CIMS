@@ -87,6 +87,10 @@
             <p class="mb-1"><strong>{{ $t('BatchNumber') }}:</strong> {{ trace.batch.batch_number }}</p>
             <p class="mb-1"><strong>{{ $t('ProductName') }}:</strong> {{ trace.batch.product }}</p>
             <p class="mb-1"><strong>{{ $t('Supplier') }}:</strong> {{ trace.batch.supplier || '—' }}</p>
+            <p class="mb-1"><strong>Receipt source:</strong> {{ trace.batch.source ? trace.batch.source.goods_receipt_ref : 'Unknown / historical' }}</p>
+            <p v-if="trace.batch.source" class="mb-1"><strong>Purchase order:</strong> {{ trace.batch.source.purchase_ref || '—' }}</p>
+            <p v-if="trace.batch.source" class="mb-1"><strong>QC:</strong> {{ trace.batch.source.qc_status }} · passed {{ trace.batch.source.qc_passed_qte }} / failed {{ trace.batch.source.qc_failed_qte }}</p>
+            <p v-if="trace.batch.source && trace.batch.source.qc_decider" class="mb-1"><strong>QC approver:</strong> {{ trace.batch.source.qc_decider }} · {{ trace.batch.source.qc_decided_at }}</p>
           </b-col>
           <b-col md="6">
             <p class="mb-1"><strong>{{ $t('ExpiryDate') }}:</strong> {{ trace.batch.expiry_date || '—' }}</p>
@@ -170,6 +174,7 @@ export default {
     columns() {
       return [
         { label: this.$t("BatchNumber"), field: "batch_number", tdClass: "text-left", thClass: "text-left", sortable: false },
+        { label: "Receipt line", field: "source_receipt_detail_id", tdClass: "text-left", thClass: "text-left", sortable: false },
         { label: this.$t("ProductCode"), field: "code", tdClass: "text-left", thClass: "text-left", sortable: false },
         { label: this.$t("ProductName"), field: "product", tdClass: "text-left", thClass: "text-left", sortable: false },
         { label: this.$t("ExpiryDate"), field: "expiry_date", tdClass: "text-left", thClass: "text-left", sortable: false },

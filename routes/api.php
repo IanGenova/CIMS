@@ -55,6 +55,9 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     Route::get('batches/expiring', 'BatchController@expiring');
     Route::get('batches/verify', 'BatchController@verify');
     Route::get('batches/{id}/trace', 'BatchController@trace')->where('id', '[0-9]+');
+    Route::get('traceability/search', 'TraceabilityController@search');
+    Route::get('traceability/overview', 'TraceabilityController@overview');
+    Route::get('traceability/exceptions', 'TraceabilityController@exceptions');
     Route::put('batches/tracking/{id}', 'BatchController@setTracking')->where('id', '[0-9]+');
 
     //-------------------------- Stock Take / Cycle Count ---------------------------
@@ -74,6 +77,35 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     Route::get('goods_receipts/create', 'GoodsReceiptController@create');
     Route::post('goods_receipts', 'GoodsReceiptController@store');
     Route::get('goods_receipts/{id}', 'GoodsReceiptController@show')->where('id', '[0-9]+');
+    Route::post('goods_receipts/{id}/qc', 'GoodsReceiptController@decideQc')->where('id', '[0-9]+');
+    Route::get('qc_dispositions', 'QcDispositionController@index');
+    Route::post('goods_receipts/{id}/qc_dispositions', 'QcDispositionController@store')->where('id', '[0-9]+');
+    Route::post('qc_dispositions/{id}/decision', 'QcDispositionController@decide')->where('id', '[0-9]+');
+    Route::post('qc_dispositions/{id}/execute', 'QcDispositionController@execute')->where('id', '[0-9]+');
+    Route::post('qc_custody/{id}/move', 'QcDispositionController@moveCustody')->where('id', '[0-9]+');
+    Route::post('branch_shipment_items/{id}/qc_dispositions', 'BranchReturnQcDispositionController@store')->where('id', '[0-9]+');
+    Route::post('branch_return_qc_dispositions/{id}/decision', 'BranchReturnQcDispositionController@decide')->where('id', '[0-9]+');
+    Route::post('branch_return_qc_dispositions/{id}/execute', 'BranchReturnQcDispositionController@execute')->where('id', '[0-9]+');
+    Route::get('branch_requests', 'BranchRequestController@index');
+    Route::get('branch_requests/options', 'BranchRequestController@options');
+    Route::post('branch_requests', 'BranchRequestController@store');
+    Route::get('branch_requests/{id}', 'BranchRequestController@show')->where('id', '[0-9]+');
+    Route::post('branch_requests/{id}/allocate', 'BranchRequestController@allocate')->where('id', '[0-9]+');
+    Route::post('branch_requests/{id}/cancel', 'BranchRequestController@cancel')->where('id', '[0-9]+');
+    Route::post('branch_shipments/{id}/dispatch', 'BranchRequestController@dispatchShipment')->where('id', '[0-9]+');
+    Route::post('branch_shipments/{id}/receive', 'BranchRequestController@receive')->where('id', '[0-9]+');
+    Route::post('branch_shipments/{id}/qc', 'BranchRequestController@decideReturnQc')->where('id', '[0-9]+');
+    Route::get('catalog/availability', 'CustomerOrderController@catalog');
+    Route::get('customer_orders', 'CustomerOrderController@index');
+    Route::get('shop/settings', 'ShopSettingsController@show');
+    Route::put('shop/settings', 'ShopSettingsController@update');
+    Route::get('customer_orders/options', 'CustomerOrderController@options');
+    Route::post('customer_orders', 'CustomerOrderController@store');
+    Route::get('customer_orders/{id}', 'CustomerOrderController@show')->where('id', '[0-9]+');
+    Route::post('customer_orders/{id}/cancel', 'CustomerOrderController@cancel')->where('id', '[0-9]+');
+    Route::post('customer_orders/{id}/verify_payment', 'CustomerOrderController@verifyPayment')->where('id', '[0-9]+');
+    Route::post('customer_orders/{id}/fulfillment', 'CustomerOrderController@updateFulfillment')->where('id', '[0-9]+');
+    Route::post('customer_order_lines/{id}/allocate', 'CustomerOrderController@allocate')->where('id', '[0-9]+');
     Route::delete('goods_receipts/{id}', 'GoodsReceiptController@destroy')->where('id', '[0-9]+');
 
     //-------------------------- Purchase Approval ---------------------------
@@ -112,6 +144,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     Route::get("report/provider_returns", "ReportController@Returns_Provider");
     Route::get("report/ToProviders", "ReportController@ToProviders");
     Route::get("report/Sales", "ReportController@Report_Sales");
+    Route::get("report/product-sales-analytics", "ProductSalesAnalyticsController@index");
     Route::get("report/Purchases", "ReportController@Report_Purchases");
     Route::get("report/Get_last_Sales", "ReportController@Get_last_Sales");
     Route::get("report/stock_alert", "ReportController@Products_Alert");
@@ -165,7 +198,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
 
     Route::resource('Products', 'ProductsController');
     Route::get('Products/export/Excel', 'ProductsController@export_Excel');
-    Route::post('Products/import/csv', 'ProductsController@import_products');
+    Route::post('Products/import/csv', 'ProductImportController@store');
     Route::get('Products/Warehouse/{id}', 'ProductsController@Products_by_Warehouse');
     Route::get('serials/lookup', 'SerialController@lookup');
     Route::get('serials/available', 'SerialController@available');
@@ -265,7 +298,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     //------------------- Delivery / shipment tracking ------------------\\
     //------------------------------------------------------------------\\
 
-    Route::resource('deliveries', 'DeliveryController');
+    Route::resource('deliveries', 'DeliveryController')->only(['index', 'store', 'show', 'update', 'destroy']);
     Route::get('deliveries/sales/undelivered', 'DeliveryController@undelivered');
     Route::post('deliveries/{id}/transition', 'DeliveryController@transition');
 
@@ -585,6 +618,7 @@ Route::middleware(['auth:api', 'Is_Active', \App\Http\Middleware\EnforceWarehous
     //------------------------------- Permission Groups user -----------\\
     //------------------------------------------------------------------\\
 
+    Route::get('roles/permission-catalog', 'PermissionsController@catalog');
     Route::resource('roles', 'PermissionsController');
     Route::get('roles/check/Create_page', 'PermissionsController@Check_Create_Page');
     Route::get('getRoleswithoutpaginate', 'PermissionsController@getRoleswithoutpaginate');

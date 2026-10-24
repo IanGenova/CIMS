@@ -6,7 +6,7 @@
        </router-link>
     </div>
 
-    <div @click="sideBarToggle" class="menu-toggle">
+    <div @click="sideBarToggle" @keydown.enter.prevent="sideBarToggle" @keydown.space.prevent="sideBarToggle" class="menu-toggle" role="button" tabindex="0" aria-label="Toggle navigation" :aria-expanded="getSideBarToggleProperties.isSideNavOpen ? 'true' : 'false'">
       <div></div>
       <div></div>
       <div></div>

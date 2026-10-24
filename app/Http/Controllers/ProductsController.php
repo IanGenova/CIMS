@@ -80,6 +80,7 @@ class ProductsController extends BaseController
             $item['brand'] = $product['brand'] ? $product['brand']->name : 'N/D';
             $item['unit'] = $product['unit']->ShortName;
             $item['price'] = $product->price;
+            $item['quantity'] = 0;
 
             $product_warehouse_data = product_warehouse::where('product_id', $product->id)
                 ->where('deleted_at', '=', null)
@@ -189,6 +190,8 @@ class ProductsController extends BaseController
                 $Product->stock_alert = $request['stock_alert'] ? $request['stock_alert'] : 0;
                 $Product->is_variant = $request['is_variant'] == 'true' ? 1 : 0;
                 $Product->has_batches = filter_var($request['has_batches'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                $Product->requires_qc = filter_var($request['requires_qc'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                $Product->web_published = filter_var($request['web_published'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
                 $Product->expiry_alert_days = is_numeric($request['expiry_alert_days'])
                     ? (int) $request['expiry_alert_days'] : 30;
                 self::applyKind($Product, $request);
@@ -295,6 +298,7 @@ class ProductsController extends BaseController
             $Product->is_service = 1;
             $Product->has_batches = 0;
             $Product->has_serials = 0;
+            $Product->requires_qc = 0;
             $Product->stock_alert = 0;
         } else {
             $Product->is_service = 0;
@@ -347,6 +351,17 @@ class ProductsController extends BaseController
                     ->where('deleted_at', '=', null)
                     ->lockForUpdate()
                     ->first();
+                if ($Product && DB::table('goods_receipt_details')
+                    ->where('product_id', $Product->id)->where('qc_status', 'pending')->exists()) {
+                    foreach (['has_batches', 'has_serials', 'is_service'] as $trackingField) {
+                        if ($request->has($trackingField)
+                            && (bool) filter_var($request[$trackingField], FILTER_VALIDATE_BOOLEAN) !== (bool) $Product->$trackingField) {
+                            throw ValidationException::withMessages([
+                                $trackingField => ['Finish QC on this product’s held receipts before changing its stock tracking or kind.'],
+                            ]);
+                        }
+                    }
+                }
                 if ($Product && $request->filled('version') && ! hash_equals(self::rowVersion($id), (string) $request['version'])) {
                     throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
                         'message' => 'Someone else changed this product while you had it open. Reload it, then make your change again.',
@@ -398,6 +413,12 @@ class ProductsController extends BaseController
                     \App\utils\BatchService::assertCanSetTracking($Product, $wantBatches);
                     $Product->has_batches = $wantBatches ? 1 : 0;
                     \App\utils\BatchService::forget($Product->id);
+                }
+                if ($request->has('requires_qc')) {
+                    $Product->requires_qc = filter_var($request['requires_qc'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+                }
+                if ($request->has('web_published')) {
+                    $Product->web_published = filter_var($request['web_published'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
                 }
                 // Only meaningful while batches are tracked, but kept either way
                 // so turning tracking off and on again does not lose the setting.
@@ -984,26 +1005,38 @@ class ProductsController extends BaseController
     public function Products_Alert(request $request)
     {
         $this->authorizeForUser($request->user('api'), 'Stock_Alerts', Product::class);
+        $allowed = \App\utils\WarehouseAccess::allowedIds();
 
         $product_warehouse_data = product_warehouse::with('warehouse', 'product', 'productVariant')
             ->join('products', 'product_warehouse.product_id', '=', 'products.id')
-            ->whereRaw('qte <= stock_alert')
+            ->where(function ($query) {
+                $query->where('product_warehouse.qte', '<=', 0)
+                    ->orWhere(function ($threshold) {
+                        $threshold->where('products.stock_alert', '>', 0)
+                            ->whereColumn('product_warehouse.qte', '<=', 'products.stock_alert');
+                    });
+            })
             // A service is never stocked, so never low; a deleted product is
             // not shown either -- the same rule as the badge (LowStock, K83).
             ->where('products.is_service', false)
             ->whereNull('products.deleted_at')
+            ->when($allowed !== null, function ($query) use ($allowed) {
+                $query->whereIn('product_warehouse.warehouse_id', $allowed);
+            })
             ->where(function ($query) use ($request) {
                 return $query->when($request->filled('warehouse'), function ($query) use ($request) {
-                    return $query->where('warehouse_id', $request->warehouse);
+                    return $query->where('product_warehouse.warehouse_id', $request->warehouse);
                 });
-            })->where('product_warehouse.deleted_at', null)->get();
+            })->where('product_warehouse.deleted_at', null)
+            ->orderByRaw('CASE WHEN product_warehouse.qte <= 0 THEN 0 ELSE 1 END')
+            ->orderByRaw('(products.stock_alert - product_warehouse.qte) DESC')
+            ->orderBy('products.name')->get();
 
         $data = [];
 
         if ($product_warehouse_data->isNotEmpty()) {
 
             foreach ($product_warehouse_data as $product_warehouse) {
-                if ($product_warehouse->qte <= $product_warehouse['product']->stock_alert) {
                     if ($product_warehouse->product_variant_id !== null) {
                         $item['code'] = $product_warehouse['productVariant']->name . '-' . $product_warehouse['product']->code;
                     } else {
@@ -1013,8 +1046,8 @@ class ProductsController extends BaseController
                     $item['name'] = $product_warehouse['product']->name;
                     $item['warehouse'] = $product_warehouse['warehouse']->name;
                     $item['stock_alert'] = $product_warehouse['product']->stock_alert;
+                    $item['alert_status'] = $product_warehouse->qte <= 0 ? 'out_of_stock' : 'below_reorder_point';
                     $data[] = $item;
-                }
             }
         }
 
@@ -1027,7 +1060,10 @@ class ProductsController extends BaseController
         $data_collection = $collection->slice($offSet, $perPage)->values();
 
         $products = new LengthAwarePaginator($data_collection, count($data), $perPage, Paginator::resolveCurrentPage(), array('path' => Paginator::resolveCurrentPath()));
-        $warehouses = Warehouse::where('deleted_at', null)->get(['id', 'name']);
+        $warehouses = Warehouse::where('deleted_at', null)
+            ->when($allowed !== null, function ($query) use ($allowed) {
+                $query->whereIn('id', $allowed);
+            })->get(['id', 'name']);
 
         return response()->json([
             'products' => $products,
@@ -1138,6 +1174,8 @@ class ProductsController extends BaseController
         // Everything the edit screen saves must come back, or saving sends its
         // blank defaults and switches these off (ProductsControllerEditFieldsTest).
         $item['has_batches'] = (bool) $Product->has_batches;
+        $item['requires_qc'] = (bool) $Product->requires_qc;
+        $item['web_published'] = (bool) $Product->web_published;
         $item['expiry_alert_days'] = $Product->expiry_alert_days ?? 30;
         $item['vat_class'] = $Product->vat_class ?: 'vatable';
         $item['sc_pwd_eligible'] = $Product->sc_pwd_eligible === null ? true : (bool) $Product->sc_pwd_eligible;
@@ -1216,127 +1254,7 @@ class ProductsController extends BaseController
     // import Products
     public function import_products(Request $request)
     {
-        // Importing creates products in bulk: it needs its own permission (DATATEST K21).
-        \App\utils\DocumentAccess::need('product_import');
-
-        try {
-            \DB::transaction(function () use ($request) {
-                $file_upload = $request->file('products');
-                $ext = pathinfo($file_upload->getClientOriginalName(), PATHINFO_EXTENSION);
-                if ($ext != 'csv') {
-                    return response()->json([
-                        'msg' => 'must be in csv format',
-                        'status' => false,
-                    ]);
-                } else {
-                    $data = array();
-                    $rowcount = 0;
-                    if (($handle = fopen($file_upload, "r")) !== false) {
-
-                        $max_line_length = defined('MAX_LINE_LENGTH') ? MAX_LINE_LENGTH : 10000;
-                        $header = fgetcsv($handle, $max_line_length);
-                        $header_colcount = count($header);
-                        while (($row = fgetcsv($handle, $max_line_length)) !== false) {
-                            $row_colcount = count($row);
-                            if ($row_colcount == $header_colcount) {
-                                $entry = array_combine($header, $row);
-                                $data[] = $entry;
-                            } else {
-                                return null;
-                            }
-                            $rowcount++;
-                        }
-                        fclose($handle);
-                    } else {
-                        return null;
-                    }
-
-
-                    // Every branch gets a stock row, whoever imports the products.
-                    $warehouses = Warehouse::withoutGlobalScope(\App\Models\Scopes\UserWarehouseScope::class)
-                        ->where('deleted_at', null)->pluck('id')->toArray();
-
-                    // Every code must be new, as on the single-product form: the
-                    // import created a second "HW-0001" next to the cement (K21/K58).
-                    $codes = array_map(function ($row) {
-                        return trim((string) ($row['code'] ?? ''));
-                    }, $data);
-                    $problems = [];
-                    foreach ($codes as $i => $code) {
-                        if ($code === '') {
-                            $problems[] = 'Row ' . ($i + 2) . ': the code is empty.';
-                        } elseif (array_search($code, $codes, true) !== $i) {
-                            $problems[] = 'Row ' . ($i + 2) . ": code {$code} appears twice in the file.";
-                        }
-                    }
-                    $taken = Product::whereNull('deleted_at')->whereIn('code', array_filter($codes))->pluck('code')->all();
-                    foreach ($taken as $code) {
-                        $problems[] = "Code {$code} is already used by another product.";
-                    }
-                    if ($problems) {
-                        throw ValidationException::withMessages(['products' => $problems]);
-                    }
-
-                    //-- Create New Product
-                    foreach ($data as $key => $value) {
-                        $category = Category::firstOrCreate(['name' => $value['category']]);
-                        $category_id = $category->id;
-
-                        $unit = Unit::where(['ShortName' => $value['unit']])
-                            ->orWhere(['name' => $value['unit']])->first();
-                        $unit_id = $unit->id;
-
-                        if ($value['brand'] != 'N/A' && $value['brand'] != '') {
-                            $brand = Brand::firstOrCreate(['name' => $value['brand']]);
-                            $brand_id = $brand->id;
-                        } else {
-                            $brand_id = null;
-                        }
-                        $Product = new Product;
-                        $Product->name = $value['name'] == '' ? null : $value['name'];
-                        $Product->code = $value['code'] == '' ? '11111111' : $value['code'];
-                        $Product->Type_barcode = 'CODE128';
-                        $Product->price = $value['price'];
-                        $Product->cost = $value['cost'];
-                        $Product->category_id = $category_id;
-                        $Product->brand_id = $brand_id;
-                        $Product->TaxNet = 0;
-                        $Product->tax_method = 1;
-                        $Product->note = $value['note'] ? $value['note'] : '';
-                        $Product->unit_id = $unit_id;
-                        $Product->unit_sale_id = $unit_id;
-                        $Product->unit_purchase_id = $unit_id;
-                        $Product->stock_alert = $value['stock_alert'] ? $value['stock_alert'] : 0;
-                        $Product->is_variant = 0;
-                        $Product->image = 'no-image.png';
-                        $Product->save();
-
-                        if ($warehouses) {
-                            foreach ($warehouses as $warehouse) {
-                                $product_warehouse[] = [
-                                    'product_id' => $Product->id,
-                                    'warehouse_id' => $warehouse,
-                                ];
-                            }
-                        }
-                    }
-                    if ($warehouses) {
-                        product_warehouse::insert($product_warehouse);
-                    }
-                }
-            }, 10);
-            return response()->json([
-                'status' => true,
-            ], 200);
-
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => false,
-                'msg' => 'error',
-                'errors' => $e->errors(),
-            ]);
-        }
-
+        return app(ProductImportController::class)->store($request);
     }
 
     // Generate_random_code

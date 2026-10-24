@@ -26,17 +26,25 @@
     <!-- built files will be auto injected -->
     <div class="loading_wrap" id="loading_wrap">
       <div class="loader_logo">
-      <img src="/images/logo-default.png" class="" alt="logo" />
+      <img src="/images/logo-default.png" alt="NASPIN TECH" />
 
       </div>
 
       <div class="loading"></div>
+      <p class="loading-message">Loading CIMS…</p>
+      <div class="loading-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="loading-error" id="loading_error" role="alert" hidden>
+        <strong>CIMS is taking longer than expected.</strong>
+        <p>Check your connection, then try again.</p>
+        <button type="button" onclick="window.location.reload()">Retry loading</button>
+      </div>
     </div>
     <div id="login">
         <login-component></login-component>
       </div>
 
-      <script src="/js/login.min.js?v=3.3.4"></script>
+      <script defer src="/js/login.min.js?v={{ filemtime(public_path('js/login.min.js')) }}"></script>
+      <script>setTimeout(function () { var wrap = document.getElementById('loading_wrap'); if (wrap && getComputedStyle(wrap).display !== 'none') { document.getElementById('loading_error').hidden = false; wrap.classList.add('loading-failed'); } }, 12000);</script>
   </body>
 </html>
 

@@ -5,20 +5,23 @@
 
     <validation-observer ref="Edit_Product" v-if="!isLoading">
       <b-form @submit.prevent="Submit_Product" enctype="multipart/form-data">
+        <b-alert v-if="validationError" show variant="danger" role="alert">Check the highlighted product fields below, then save again.</b-alert>
         <b-row>
           <b-col md="8">
             <b-card>
               <b-card-body>
                 <b-row>
                   <!-- name -->
+                  <b-col cols="12"><h5 class="product-section-heading">Product identity</h5></b-col>
                   <b-col md="6" class="mb-2">
                     <validation-provider
                       name="name"
                       :rules="{required:true , min:3 , max:55}"
                       v-slot="validationContext"
                     >
-                      <b-form-group :label="$t('Name_product')">
+                      <b-form-group :label="$t('Name_product')" label-for="edit-product-name">
                         <b-form-input
+                          id="edit-product-name"
                           :state="getValidationState(validationContext)"
                           aria-describedby="name-feedback"
                           label="name"
@@ -39,9 +42,10 @@
                       :rules="{ required: true}"
                       v-slot="validationContext"
                     >
-                      <b-form-group :label="$t('CodeProduct')">
+                      <b-form-group label="Product code" label-for="edit-product-code">
                         <div class="input-group">
                           <input
+                            id="edit-product-code"
                             :state="getValidationState(validationContext)"
                             aria-describedby="CodeProduct-feedback"
                             type="text"
@@ -67,8 +71,9 @@
                   <!-- Category -->
                   <b-col md="6" class="mb-2">
                     <validation-provider name="category" :rules="{ required: true}">
-                      <b-form-group slot-scope="{ valid, errors }" :label="$t('Categorie')">
+                      <b-form-group slot-scope="{ valid, errors }" :label="$t('Categorie')" label-for="edit-product-category">
                         <v-select
+                          input-id="edit-product-category" :aria-label="$t('Categorie')"
                           :class="{'is-invalid': !!errors.length}"
                           :state="errors[0] ? false : (valid ? true : null)"
                           :reduce="label => label.value"
@@ -83,8 +88,9 @@
 
                   <!-- Brand  -->
                   <b-col md="6" class="mb-2">
-                    <b-form-group :label="$t('Brand')">
+                    <b-form-group :label="$t('Brand')" label-for="edit-product-brand">
                       <v-select
+                        input-id="edit-product-brand" :aria-label="$t('Brand')"
                         :placeholder="$t('Choose_Brand')"
                         :reduce="label => label.value"
                         v-model="product.brand_id"
@@ -96,8 +102,9 @@
                   <!-- Barcode Symbology  -->
                   <b-col md="6" class="mb-2">
                     <validation-provider name="Barcode Symbology" :rules="{ required: true}">
-                      <b-form-group slot-scope="{ valid, errors }" :label="$t('BarcodeSymbology')">
+                      <b-form-group slot-scope="{ valid, errors }" :label="$t('BarcodeSymbology')" label-for="edit-product-barcode-type">
                         <v-select
+                          input-id="edit-product-barcode-type" :aria-label="$t('BarcodeSymbology')"
                           :class="{'is-invalid': !!errors.length}"
                           :state="errors[0] ? false : (valid ? true : null)"
                           v-model="product.Type_barcode"
@@ -115,14 +122,16 @@
                   </b-col>
 
                   <!-- Product Cost -->
+                  <b-col cols="12"><h5 class="product-section-heading">Pricing</h5><p class="text-muted small">Purchase cost and selling price are separate values.</p></b-col>
                   <b-col md="6" class="mb-2">
                     <validation-provider
                       name="Product Cost"
                       :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                       v-slot="validationContext"
                     >
-                      <b-form-group :label="$t('ProductCost')">
+                      <b-form-group label="Purchase cost" label-for="edit-product-cost">
                         <b-form-input
+                          id="edit-product-cost"
                           :state="getValidationState(validationContext)"
                           aria-describedby="ProductCost-feedback"
                           label="Cost"
@@ -143,8 +152,9 @@
                       :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                       v-slot="validationContext"
                     >
-                      <b-form-group :label="$t('ProductPrice')">
+                      <b-form-group label="Selling price" label-for="edit-product-price">
                         <b-form-input
+                          id="edit-product-price"
                           :state="getValidationState(validationContext)"
                           aria-describedby="ProductPrice-feedback"
                           label="Price"
@@ -160,10 +170,12 @@
                   </b-col>
 
                   <!-- Unit Product -->
+                  <b-col cols="12"><h5 class="product-section-heading">Units and stock</h5></b-col>
                   <b-col md="6" class="mb-2">
                     <validation-provider name="Unit Product" :rules="{ required: true}">
-                      <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitProduct')">
+                      <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitProduct')" label-for="edit-product-unit">
                         <v-select
+                          input-id="edit-product-unit" :aria-label="$t('UnitProduct')"
                           :class="{'is-invalid': !!errors.length}"
                           :state="errors[0] ? false : (valid ? true : null)"
                           v-model="product.unit_id"
@@ -182,8 +194,9 @@
                   <!-- Unit Sale -->
                   <b-col md="6" class="mb-2">
                     <validation-provider name="Unit Sale" :rules="{ required: true}">
-                      <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitSale')">
+                      <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitSale')" label-for="edit-product-sale-unit">
                         <v-select
+                          input-id="edit-product-sale-unit" :aria-label="$t('UnitSale')"
                           :class="{'is-invalid': !!errors.length}"
                           :state="errors[0] ? false : (valid ? true : null)"
                           v-model="product.unit_sale_id"
@@ -199,8 +212,9 @@
                   <!-- Unit Purchase -->
                   <b-col md="6" class="mb-2">
                     <validation-provider name="Unit Purchase" :rules="{ required: true}">
-                      <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitPurchase')">
+                      <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitPurchase')" label-for="edit-product-purchase-unit">
                         <v-select
+                          input-id="edit-product-purchase-unit" :aria-label="$t('UnitPurchase')"
                           :class="{'is-invalid': !!errors.length}"
                           :state="errors[0] ? false : (valid ? true : null)"
                           v-model="product.unit_purchase_id"
@@ -220,8 +234,9 @@
                       :rules="{ regex: /^\d*\.?\d*$/}"
                       v-slot="validationContext"
                     >
-                      <b-form-group :label="$t('StockAlert')">
+                      <b-form-group :label="$t('StockAlert')" label-for="edit-product-stock-alert">
                         <b-form-input
+                          id="edit-product-stock-alert"
                           :state="getValidationState(validationContext)"
                           aria-describedby="StockAlert-feedback"
                           label="Stock alert"
@@ -237,12 +252,17 @@
 
                   <!-- Batch tracking. It cannot be switched on while untracked
                        stock is already on the shelf; the server says why. -->
+                  <b-col cols="12">
+                    <details class="product-advanced-options" :open="advancedOpen" @toggle="advancedOpen = $event.target.open">
+                      <summary>Advanced options <small class="text-muted">Tax, tracking, online shop and notes</small></summary>
+                      <b-row class="mt-3">
+                  <b-col cols="12"><h5 class="product-section-heading">Tax and discounts</h5></b-col>
                   <!-- Philippine VAT classification. A 0% rate and a VAT-exempt
                        sale are the same number but different filings, so this is
                        a classification rather than another rate. -->
                   <b-col md="6">
-                    <b-form-group :label="$t('VatClassification')">
-                      <b-form-select v-model="product.vat_class">
+                    <b-form-group :label="$t('VatClassification')" label-for="edit-product-vat-class">
+                      <b-form-select id="edit-product-vat-class" v-model="product.vat_class">
                         <option value="vatable">{{ $t('Vatable') }}</option>
                         <option value="vat_exempt">{{ $t('VatExempt') }}</option>
                         <option value="zero_rated">{{ $t('ZeroRated') }}</option>
@@ -260,6 +280,7 @@
                     </b-form-group>
                   </b-col>
 
+                  <b-col cols="12"><h5 class="product-section-heading">Tracking and availability</h5></b-col>
                   <b-col md="6" v-if="!product.is_service">
                     <b-form-group :label="$t('BatchTracking')">
                       <b-form-checkbox v-model="product.has_batches" switch :disabled="product.has_serials">
@@ -268,11 +289,26 @@
                     </b-form-group>
                   </b-col>
 
+                  <b-col md="6" v-if="!product.is_service">
+                    <b-form-group label="Quality inspection">
+                      <b-form-checkbox v-model="product.requires_qc" switch>
+                        Hold new receipts until a QC approver releases them
+                      </b-form-checkbox>
+                    </b-form-group>
+                  </b-col>
+                  <b-col md="6" v-if="!product.is_service">
+                    <b-form-group label="Online storefront">
+                      <b-form-checkbox v-model="product.web_published" switch>
+                        Show this product on the public shop after the shop is enabled
+                      </b-form-checkbox>
+                    </b-form-group>
+                  </b-col>
+
                   <!-- Goods or a service; the server refuses the change while
                        any stock is on hand. -->
                   <b-col md="6">
-                    <b-form-group :label="$t('ProductKind')" :description="product.is_service ? $t('ServiceHelp') : ''">
-                      <b-form-select v-model="product.is_service">
+                    <b-form-group :label="$t('ProductKind')" label-for="edit-product-kind" :description="product.is_service ? $t('ServiceHelp') : ''">
+                      <b-form-select id="edit-product-kind" v-model="product.is_service">
                         <option :value="false">{{ $t('KindGoods') }}</option>
                         <option :value="true">{{ $t('KindService') }}</option>
                       </b-form-select>
@@ -288,28 +324,33 @@
                   </b-col>
 
                   <b-col md="6" v-if="!product.is_service">
-                    <b-form-group :label="$t('WarrantyMonths')" :description="$t('WarrantyMonthsHelp')">
-                      <b-form-input type="number" min="1" max="600" v-model="product.warranty_months"></b-form-input>
+                    <b-form-group :label="$t('WarrantyMonths')" label-for="edit-product-warranty" :description="$t('WarrantyMonthsHelp')">
+                      <b-form-input id="edit-product-warranty" type="number" min="1" max="600" v-model="product.warranty_months"></b-form-input>
                     </b-form-group>
                   </b-col>
 
                   <b-col md="6" v-if="product.has_batches && !product.is_service">
-                    <b-form-group :label="$t('ExpiryAlertDays')">
-                      <b-form-input type="number" min="0" v-model="product.expiry_alert_days"></b-form-input>
+                    <b-form-group :label="$t('ExpiryAlertDays')" label-for="edit-product-expiry-days">
+                      <b-form-input id="edit-product-expiry-days" type="number" min="0" v-model="product.expiry_alert_days"></b-form-input>
                     </b-form-group>
                   </b-col>
 
 
 
                   <b-col md="12" class="mb-2">
-                    <b-form-group :label="$t('Note')">
+                    <h5 class="product-section-heading">Notes</h5>
+                    <b-form-group :label="$t('Note')" label-for="edit-product-note">
                       <textarea
+                        id="edit-product-note"
                         rows="4"
                         class="form-control"
                         :placeholder="$t('Afewwords')"
                         v-model="product.note"
                       ></textarea>
                     </b-form-group>
+                  </b-col>
+                      </b-row>
+                    </details>
                   </b-col>
                 </b-row>
               </b-card-body>
@@ -318,7 +359,7 @@
           <b-col md="4">
             <b-card>
               <div class="card-header">
-                <h5>{{$t('MultipleImage')}}</h5>
+                <h5>Product images</h5>
               </div>
               <div class="card-body">
                 <b-row class="form-group">
@@ -348,9 +389,10 @@
               </div>
             </b-card>
           </b-col>
-          <b-col md="12" class="mt-3">
-             <b-button variant="primary" type="submit" :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
-              <div v-once class="typo__p" v-if="SubmitProcessing">
+          <b-col md="12" class="mt-3 product-save-bar">
+             <router-link to="/app/products/list" class="btn btn-outline-secondary mr-2">Cancel</router-link>
+             <b-button variant="primary" type="submit" :disabled="SubmitProcessing">Save changes</b-button>
+              <div class="typo__p" v-if="SubmitProcessing">
                 <div class="spinner sm spinner-primary mt-3"></div>
               </div>
           </b-col>
@@ -378,6 +420,8 @@ export default {
       change: false,
       isLoading: true,
       SubmitProcessing:false,
+      validationError: false,
+      advancedOpen: false,
       data: new FormData(),
       categories: [],
       Subcategories: [],
@@ -401,6 +445,8 @@ export default {
         unit_purchase_id: "",
         stock_alert: "",
         has_batches: false,
+        requires_qc: false,
+        web_published: false,
         expiry_alert_days: 30,
         is_service: false,
         has_serials: false,
@@ -423,8 +469,15 @@ export default {
   methods: {
     //------------- Submit Validation Update Product
     Submit_Product() {
+      this.validationError = false;
       this.$refs.Edit_Product.validate().then(success => {
         if (!success) {
+          this.validationError = true;
+          this.advancedOpen = true;
+          this.$nextTick(() => {
+            const invalid = this.$el.querySelector('[aria-invalid="true"], .is-invalid');
+            if (invalid && invalid.focus) invalid.focus();
+          });
           this.makeToast(
             "danger",
             this.$t("Please_fill_the_form_correctly"),
@@ -601,3 +654,11 @@ export default {
   }
 };
 </script>
+<style scoped>
+.product-section-heading { margin: 1.25rem 0 .75rem; padding-bottom: .45rem; border-bottom: 1px solid #e2e8e7; color: #0b6f52; font-size: 1rem; font-weight: 700; }
+.product-advanced-options { margin-top: 1rem; border-top: 1px solid #e2e8e7; }
+.product-advanced-options summary { padding: 1rem 0; cursor: pointer; color: #0b6f52; font-weight: 700; }
+.product-advanced-options summary:focus-visible { outline: 2px solid #0b6f52; outline-offset: 2px; }
+.product-advanced-options summary small { display: block; font-weight: 400; }
+.product-save-bar { position: sticky; bottom: 0; z-index: 5; padding: 1rem; background: #fff; border-top: 1px solid #dce6e2; box-shadow: 0 -5px 16px rgba(0,0,0,.06); }
+</style>
