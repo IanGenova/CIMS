@@ -6,7 +6,10 @@
 
     <main>
       <div
-        :class="{ 'sidenav-open': getSideBarToggleProperties.isSideNavOpen }"
+        :class="{
+          'sidenav-open': getSideBarToggleProperties.isSideNavOpen,
+          'secondary-sidenav-open': getSideBarToggleProperties.isSideNavOpen && getSideBarToggleProperties.isSecondarySideNavOpen
+        }"
         class="main-content-wrap d-flex flex-column flex-grow-1"
       >
         <transition name="page" mode="out-in">

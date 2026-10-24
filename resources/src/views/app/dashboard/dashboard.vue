@@ -1,6 +1,6 @@
 <template>
   <!-- ============ Body content start ============= -->
-  <div class="main-content">
+  <div class="main-content dashboard-main">
     <b-row>
       <!-- ICON BG -->
 
@@ -8,7 +8,7 @@
         <b-card class="card-icon-bg card-icon-bg-primary o-hidden mb-30 text-center">
           <i class="i-Coins"></i>
           <div class="content">
-            <p class="text-muted mt-2 mb-0">{{$t('Revenue')}}</p>
+            <p class="text-muted mt-2 mb-0">{{$t('Revenue')}} today</p>
             <p
               class="text-primary text-24 line-height-1 mb-2"
             >{{currentUser.currency}} {{formatNumber((report_today.revenue?report_today.revenue:0),2)}}</p>
@@ -20,7 +20,7 @@
         <b-card class="card-icon-bg card-icon-bg-primary o-hidden mb-30 text-center">
           <i class="i-Add-Cart"></i>
           <div class="content">
-            <p class="text-muted mt-2 mb-0">{{$t('Purchases')}}</p>
+            <p class="text-muted mt-2 mb-0">{{$t('Purchases')}} today</p>
             <p
               class="text-primary text-24 line-height-1 mb-2"
             >{{currentUser.currency}} {{formatNumber((report_today.today_purchases?report_today.today_purchases:0),2)}}</p>
@@ -32,7 +32,7 @@
         <b-card class="card-icon-bg card-icon-bg-primary o-hidden mb-30 text-center">
           <i class="i-Right-4"></i>
           <div class="content">
-            <p class="text-muted mt-2 mb-0">{{$t('SalesReturn')}}</p>
+            <p class="text-muted mt-2 mb-0">{{$t('SalesReturn')}} today</p>
             <p
               class="text-primary text-24 line-height-1 mb-2"
             >{{currentUser.currency}} {{formatNumber((report_today.return_sales?report_today.return_sales:0),2)}}</p>
@@ -44,7 +44,7 @@
         <b-card class="card-icon-bg card-icon-bg-primary o-hidden mb-30 text-center">
           <i class="i-Financial"></i>
           <div class="content">
-            <p class="text-muted mt-2 mb-0">{{$t('Profit')}}</p>
+            <p class="text-muted mt-2 mb-0">{{$t('Profit')}} today</p>
             <p
               class="text-primary text-24 line-height-1 mb-2"
             >{{currentUser.currency}} {{formatNumber((report_today.profit?report_today.profit:0),2)}}</p>
@@ -68,11 +68,14 @@
       <b-col col lg="4" md="12" sm="12">
         <b-card class="mb-30">
           <h4 class="card-title m-0">{{$t('Top_Selling_Products')}} ({{new Date().getFullYear()}})</h4>
-          <div class="chart-wrapper">
-            <div v-once class="typo__p text-right" v-if="loading">
-              <div class="spinner sm spinner-primary mt-3"></div>
-            </div>
-            <v-chart v-if="!loading" :options="echartProduct" :autoresize="true"></v-chart>
+          <div v-if="loading" class="spinner sm spinner-primary mt-3"></div>
+          <div v-else-if="!topYearProducts.length" class="text-muted py-5 text-center">No completed product sales this year.</div>
+          <ol v-else class="top-products-list" aria-label="Top selling products by sales value">
+            <li v-for="product in topYearProducts" :key="product.name">
+              <span :title="product.name">{{ product.name }}</span>
+              <strong>{{ currentUser.currency }} {{ Number(product.value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong>
+            </li>
+          </ol>
           </div>
         </b-card>
       </b-col>
@@ -225,6 +228,7 @@ export default {
         profit: 0
       },
       products: [],
+      topYearProducts: [],
       CurrentMonth: "",
       loading: true,
       echartSales: {},
@@ -401,6 +405,8 @@ export default {
             response.data.report_dashboard.original.stock_alert;
           this.products = response.data.report_dashboard.original.products;
           this.sales = response.data.report_dashboard.original.last_sales;
+          this.topYearProducts = (responseData.product_report.original || [])
+            .slice().sort((a, b) => Number(b.value) - Number(a.value)).slice(0, 5);
           var dark_heading = "#c2c6dc";
 
           this.echartCustomer = {
@@ -660,3 +666,23 @@ export default {
   }
 };
 </script>
+<style scoped>
+.top-products-list { padding: 0; margin: 1.25rem 0 0; list-style: none; }
+.top-products-list li { display: flex; flex-direction: column; gap: .2rem; padding: .55rem 0; border-bottom: 1px solid #e8edf0; }
+.top-products-list li:last-child { border-bottom: 0; }
+.top-products-list span { overflow-wrap: anywhere; }
+.top-products-list strong { color: #087a56; }
+</style>
+<style>
+@media (min-width: 992px) and (max-width: 1300px) {
+  .main-content-wrap.secondary-sidenav-open .dashboard-main > .row:first-child > .col-lg-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+  .main-content-wrap.secondary-sidenav-open .dashboard-main > .row:nth-child(2) > .col-lg-8,
+  .main-content-wrap.secondary-sidenav-open .dashboard-main > .row:nth-child(2) > .col-lg-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+</style>

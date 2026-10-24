@@ -365,7 +365,8 @@ class ReportController extends BaseController
                 Carbon::now()->startOfYear(),
                 Carbon::now()->endOfYear(),
             ])
-            ->where('sales.statut', '!=', 'voided')
+            ->whereNull('sales.deleted_at')
+            ->where('sales.statut', 'completed')
             ->where(function ($query) use ($view_records) {
                 if (!$view_records) {
                     return $query->where('sales.user_id', '=', Auth::user()->id);

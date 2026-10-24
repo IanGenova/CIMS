@@ -65,31 +65,36 @@
         </div>
 
         <template slot="table-row" slot-scope="props">
-          <span v-if="props.column.field == 'actions'">
+          <span v-if="props.column.field == 'actions'" class="product-actions">
             <router-link
+              class="product-table-action"
               v-if="currentUserPermissions && currentUserPermissions.includes('products_view')"
               v-b-tooltip.hover
               title="View"
+              :aria-label="'View ' + props.row.name"
               :to="{ name:'detail_product', params: { id: props.row.id} }"
             >
               <i class="i-Eye text-25 text-info"></i>
             </router-link>
             <router-link
+              class="product-table-action"
               v-if="currentUserPermissions && currentUserPermissions.includes('products_edit')"
               v-b-tooltip.hover
               title="Edit"
+              :aria-label="'Edit ' + props.row.name"
               :to="{ name:'edit_product', params: { id: props.row.id } }"
             >
               <i class="i-Edit text-25 text-success"></i>
             </router-link>
-            <a
+            <button type="button" class="product-table-action product-delete-action"
               v-if="currentUserPermissions && currentUserPermissions.includes('products_delete')"
               @click="Remove_Product(props.row.id)"
               v-b-tooltip.hover
               title="Delete"
+              :aria-label="'Delete ' + props.row.name"
             >
               <i class="i-Close-Window text-25 text-danger"></i>
-            </a>
+            </button>
           </span>
           <span v-else-if="props.column.field == 'image'">
             <b-img
@@ -698,6 +703,10 @@ export default {
 </script>
 
 <style scoped>
+.product-actions { display: inline-flex; align-items: center; gap: .25rem; }
+.product-table-action { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 36px; border-radius: .35rem; }
+.product-table-action:hover, .product-table-action:focus { background: #edf5f2; outline: 2px solid #0b6f52; outline-offset: 1px; }
+.product-delete-action { border: 0; background: transparent; cursor: pointer; }
 .import-errors {
   max-height: 12rem;
   overflow-y: auto;

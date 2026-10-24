@@ -812,6 +812,7 @@
           :class="{ 'd-block': selectedParentMenu == 'reports' }"
         >
 
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_profit') || currentUserPermissions.includes('Customers_view') || currentUserPermissions.includes('accounting') || currentUserPermissions.includes('Pos_view'))">Finance &amp; till</li>
           <li
             class="nav-item"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_profit')"
@@ -848,6 +849,7 @@
               <span class="item-name">{{$t('TillSessions')}}</span>
             </router-link>
           </li>
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_quantity_alerts') || currentUserPermissions.includes('Warehouse_report'))">Inventory</li>
           <li
             class="nav-item"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_quantity_alerts')"
@@ -904,6 +906,7 @@
               <span class="item-name">{{$t('Warehouse_report')}}</span>
             </router-link>
           </li>
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_sales') || currentUserPermissions.includes('Reports_purchase'))">Sales &amp; purchasing</li>
           <li
             class="nav-item"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_sales')"
@@ -931,6 +934,7 @@
               <span class="item-name">{{$t('PurchasesReport')}}</span>
             </router-link>
           </li>
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_customers') || currentUserPermissions.includes('Reports_suppliers'))">Customers &amp; suppliers</li>
           <li
             class="nav-item"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_customers')"
@@ -949,6 +953,7 @@
               <span class="item-name">{{$t('SuppliersReport')}}</span>
             </router-link>
           </li>
+          <li class="report-group" v-if="currentUserPermissions && (currentUserPermissions.includes('Reports_payments_Sales') || currentUserPermissions.includes('Reports_payments_Purchases') || currentUserPermissions.includes('Reports_payments_Sale_Returns') || currentUserPermissions.includes('Reports_payments_purchase_Return'))">Payments</li>
           <li
             class="nav-item"
             v-if="currentUserPermissions && currentUserPermissions.includes('Reports_payments_Sales')"
@@ -1022,7 +1027,7 @@ export default {
       isStyle: true,
       selectedParentMenu: "",
       isMobile,
-      isNarrow: window.innerWidth <= 1200
+      isNarrow: window.innerWidth < 992
     };
   },
   mounted() {
@@ -1051,8 +1056,8 @@ export default {
     ]),
 
     handleWindowResize() {
-      this.isNarrow = window.innerWidth <= 1200;
-      if (window.innerWidth <= 1200) {
+      this.isNarrow = window.innerWidth < 992;
+      if (this.isNarrow) {
         if (this.getSideBarToggleProperties.isSideNavOpen) {
           this.changeSidebarProperties();
         }
@@ -1095,7 +1100,7 @@ export default {
       if (this.getSideBarToggleProperties.isSecondarySideNavOpen) {
         this.changeSecondarySidebarPropertiesViaOverlay();
       }
-      if (window.innerWidth <= 1200) {
+      if (this.isNarrow) {
         this.setSidebarOpen(false);
       }
       this.toggleSelectedParentMenu();
@@ -1119,6 +1124,14 @@ export default {
 };
 </script>
 
-<style lang="" scoped>
+<style scoped>
+.report-group {
+  padding: 16px 24px 5px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
 </style>
 

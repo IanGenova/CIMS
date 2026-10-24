@@ -44,7 +44,7 @@
                 >
                   <i class="i-Money-2"></i>
                   <span v-if="till">{{ currentUser.currency }} {{ tillExpected }}</span>
-                  <span v-else>{{ $t('TillClosed') }}</span>
+                  <span v-else>{{ tillRequired ? $t('TillClosed') : 'Till optional' }}</span>
                 </div>
 
                 <!-- Full screen toggle -->
@@ -498,10 +498,13 @@
                         </b-button>
                       </b-col>
                       <b-col cols="6">
-                        <b-button type="submit" variant="primary ripple mt-1 btn-rounded btn-block">
+                        <b-button type="submit" variant="primary ripple mt-1 btn-rounded btn-block" :disabled="!sale.warehouse_id || !sale.client_id || !details.length || (tillRequired && !till && !isOffline)" :title="!sale.warehouse_id ? 'Choose a warehouse first' : !sale.client_id ? 'Choose a customer first' : !details.length ? 'Add a product first' : (tillRequired && !till && !isOffline) ? 'Open the till first' : 'Take payment'">
                           <i class="i-Checkout"></i>
                           {{ $t("payNow") }}
                         </b-button>
+                      </b-col>
+                      <b-col cols="12" v-if="!sale.warehouse_id || !sale.client_id || !details.length || (tillRequired && !till && !isOffline)" class="small text-muted mt-2" role="status">
+                        {{ !sale.warehouse_id ? 'Choose a warehouse to start.' : !sale.client_id ? 'Choose a customer.' : !details.length ? 'Scan or select a product to add to the basket.' : 'Open the till before taking payment.' }}
                       </b-col>
                     </b-row>
                   </div>

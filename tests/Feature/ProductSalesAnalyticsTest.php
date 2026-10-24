@@ -94,6 +94,8 @@ class ProductSalesAnalyticsTest extends TestCase
 
         $visible = $this->getJson('/api/report/product-sales-analytics?history_weeks=4')->assertOk()
             ->assertJsonCount(1, 'products')->assertJsonCount(1, 'warehouses');
+        $visible->assertJsonCount(0, 'top')->assertJsonCount(0, 'bottom');
+        $this->assertSame(0, $visible->json('summary.forecastable_products'));
         $this->assertFalse($visible->json('scope.own_sales_only'));
         $this->assertEqualsWithDelta(12, $visible->json('products.0.observed_units'), 0.01);
         $this->getJson('/api/report/product-sales-analytics?warehouse_id=' . $otherWarehouse)->assertForbidden();

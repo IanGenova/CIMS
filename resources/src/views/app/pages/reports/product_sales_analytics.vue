@@ -41,9 +41,13 @@
       </b-row>
 
       <b-alert show variant="info" class="mb-3">
-        Top and bottom rank projected <strong>sales value</strong>, so products sold in different units can be compared.
-        Trending uses the slope of <strong>units sold</strong>. Forecasts are estimates, not guaranteed sales;
-        “limited data” means fewer than four weeks had sales. Figures are gross completed sales; returns are not subtracted.
+        Top and bottom rank projected <strong>sales value</strong> only after at least four weeks with sales.
+        Trending uses the slope of <strong>units sold</strong>. Forecasts are estimates, not guaranteed sales.
+        Figures are gross completed sales; returns are not subtracted.
+      </b-alert>
+
+      <b-alert v-if="summary.limited_data_products" show variant="warning" class="mb-3">
+        {{ summary.limited_data_products }} {{ summary.limited_data_products === 1 ? 'product has' : 'products have' }} fewer than four weeks with sales. Their forecast figures are withheld until more history is available.
       </b-alert>
 
       <b-card v-if="!products.length" class="mb-3">
@@ -54,6 +58,7 @@
         <b-row>
           <b-col lg="4" class="mb-3">
             <b-card title="Most projected sales" class="h-100">
+              <p v-if="!top.length" class="text-muted mb-0">No products have enough sales history to rank yet.</p>
               <div v-for="(row, index) in top" :key="row.product_id" class="rank-row" @click="select(row)">
                 <span class="rank-number">{{ index + 1 }}</span>
                 <span class="rank-name"><strong>{{ row.name }}</strong><small>{{ row.code }}</small></span>
@@ -63,6 +68,7 @@
           </b-col>
           <b-col lg="4" class="mb-3">
             <b-card title="Least projected sales" class="h-100">
+              <p v-if="!bottom.length" class="text-muted mb-0">No products have enough sales history to rank yet.</p>
               <div v-for="(row, index) in bottom" :key="row.product_id" class="rank-row" @click="select(row)">
                 <span class="rank-number">{{ index + 1 }}</span>
                 <span class="rank-name"><strong>{{ row.name }}</strong><small>{{ row.code }}</small></span>
@@ -86,27 +92,27 @@
           <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
             <div>
               <h5 class="mb-0">{{ selected.name }} <small class="text-muted">{{ selected.code }}</small></h5>
-              <span class="text-muted">Weekly units sold and the next {{ horizonWeeks }} weeks of projected demand</span>
+              <span class="text-muted">{{ selected.trend === 'limited' ? 'Weekly units sold; forecast requires four weeks with sales' : `Weekly units sold and the next ${horizonWeeks} weeks of projected demand` }}</span>
             </div>
-            <div class="text-right">
+            <div v-if="selected.trend !== 'limited'" class="text-right">
               <strong>{{ quantity(selected.predicted_units) }} {{ selected.unit }}</strong> projected ·
               <strong>{{ money(selected.predicted_revenue) }}</strong> projected sales value
             </div>
           </div>
-          <svg class="forecast-chart" viewBox="0 0 760 240" role="img" :aria-label="'Weekly unit sales and forecast for ' + selected.name">
+          <svg class="forecast-chart" viewBox="0 0 760 240" role="img" :aria-label="(selected.trend === 'limited' ? 'Weekly unit sales for ' : 'Weekly unit sales and forecast for ') + selected.name">
             <line x1="45" y1="190" x2="730" y2="190" stroke="#c9d1db" />
             <line x1="45" y1="25" x2="45" y2="190" stroke="#c9d1db" />
-            <line :x1="splitX" y1="25" :x2="splitX" y2="190" stroke="#99a5b4" stroke-dasharray="4 4" />
+            <line v-if="selected.trend !== 'limited'" :x1="splitX" y1="25" :x2="splitX" y2="190" stroke="#99a5b4" stroke-dasharray="4 4" />
             <text x="4" y="32" font-size="12" fill="#64748b">{{ quantity(chartMax) }}</text>
             <text x="19" y="194" font-size="12" fill="#64748b">0</text>
             <polyline :points="actualPoints" fill="none" stroke="#087a56" stroke-width="3" stroke-linejoin="round" />
-            <polyline :points="forecastPoints" fill="none" stroke="#6b48d7" stroke-width="3" stroke-dasharray="7 5" stroke-linejoin="round" />
+            <polyline v-if="selected.trend !== 'limited'" :points="forecastPoints" fill="none" stroke="#6b48d7" stroke-width="3" stroke-dasharray="7 5" stroke-linejoin="round" />
             <text x="65" y="221" font-size="12" fill="#64748b">Completed weeks</text>
-            <text x="600" y="221" font-size="12" fill="#64748b">Forecast weeks</text>
+            <text v-if="selected.trend !== 'limited'" x="600" y="221" font-size="12" fill="#64748b">Forecast weeks</text>
           </svg>
           <div class="d-flex flex-wrap small text-muted">
             <span class="mr-3">Green: recorded sales</span>
-            <span class="mr-3">Purple dashed: linear forecast</span>
+            <span v-if="selected.trend !== 'limited'" class="mr-3">Purple dashed: linear forecast</span>
             <span class="mr-3">Weeks with sales: {{ selected.active_weeks }}/{{ historyWeeks }}</span>
             <span>Historical line fit (R²): {{ Math.round(selected.unit_fit_r_squared * 100) }}% — not a probability of future accuracy</span>
           </div>
@@ -124,9 +130,9 @@
                 <tr v-for="row in filteredProducts" :key="row.product_id" class="product-row" @click="select(row)">
                   <td><strong>{{ row.name }}</strong><br /><small class="text-muted">{{ row.code }}</small></td>
                   <td class="text-right">{{ quantity(row.observed_units) }} {{ row.unit }}</td>
-                  <td class="text-right">{{ quantity(row.predicted_units) }} {{ row.unit }}</td>
-                  <td class="text-right">{{ money(row.predicted_revenue) }}</td>
-                  <td class="text-right">{{ row.unit_slope_per_week > 0 ? '+' : '' }}{{ quantity(row.unit_slope_per_week) }}</td>
+                  <td class="text-right">{{ row.trend === 'limited' ? '—' : `${quantity(row.predicted_units)} ${row.unit}` }}</td>
+                  <td class="text-right">{{ row.trend === 'limited' ? '—' : money(row.predicted_revenue) }}</td>
+                  <td class="text-right">{{ row.trend === 'limited' ? '—' : `${row.unit_slope_per_week > 0 ? '+' : ''}${quantity(row.unit_slope_per_week)}` }}</td>
                   <td><b-badge :variant="trendVariant(row.trend)">{{ trendLabel(row.trend) }}</b-badge></td>
                 </tr>
                 <tr v-if="!filteredProducts.length"><td colspan="6" class="text-center text-muted">No matching products.</td></tr>
@@ -153,7 +159,7 @@ export default {
       currencySymbol: "₱",
       period: null,
       scope: { own_sales_only: false },
-      summary: { products_with_sales: 0, trending_products: 0, limited_data_products: 0 },
+      summary: { products_with_sales: 0, trending_products: 0, limited_data_products: 0, forecastable_products: 0 },
       top: [], bottom: [], trending: [], products: [],
       selectedProductId: null,
       search: "",
@@ -171,7 +177,7 @@ export default {
     },
     chartMax() {
       if (!this.selected) return 1;
-      return Math.max(1, ...this.selected.weekly_units, ...this.selected.forecast_units) * 1.1;
+      return Math.max(1, ...this.selected.weekly_units, ...(this.selected.trend === 'limited' ? [] : this.selected.forecast_units)) * 1.1;
     },
     splitX() { return this.chartX(this.historyWeeks - 1); },
     actualPoints() {

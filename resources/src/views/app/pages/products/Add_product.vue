@@ -9,6 +9,7 @@
           <b-col md="8">
             <b-card>
               <b-row>
+                <b-col cols="12"><h5 class="product-section-heading">Product identity</h5></b-col>
                 <!-- Name -->
                 <b-col md="6" class="mb-2">
                   <validation-provider
@@ -35,7 +36,7 @@
                     name="Code Product"
                     :rules="{ required: true}"
                   >
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('CodeProduct')">
+                    <b-form-group slot-scope="{ valid, errors }" label="Product code">
                       <div class="input-group">
                         <b-form-input
                           :class="{'is-invalid': !!errors.length}"
@@ -46,9 +47,9 @@
                         ></b-form-input>
                         <div class="input-group-append">
                           <span class="input-group-text">
-                            <a @click="generateNumber()">
+                            <button type="button" class="btn btn-link p-0" @click="generateNumber()" aria-label="Generate product code" title="Generate product code">
                               <i class="i-Bar-Code"></i>
-                            </a>
+                            </button>
                           </span>
                         </div>
                         <b-form-invalid-feedback id="CodeProduct-feedback">{{ errors[0] }}</b-form-invalid-feedback>
@@ -115,13 +116,14 @@
                 </b-col>
 
                 <!-- Product Cost -->
+                <b-col cols="12"><h5 class="product-section-heading">Pricing</h5><p class="text-muted small">Purchase cost and selling price are separate values.</p></b-col>
                 <b-col md="6" class="mb-2">
                   <validation-provider
                     name="Product Cost"
                     :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                     v-slot="validationContext"
                   >
-                    <b-form-group :label="$t('ProductCost')">
+                    <b-form-group label="Purchase cost">
                       <b-form-input
                         :state="getValidationState(validationContext)"
                         aria-describedby="ProductCost-feedback"
@@ -143,7 +145,7 @@
                     :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                     v-slot="validationContext"
                   >
-                    <b-form-group :label="$t('ProductPrice')">
+                    <b-form-group label="Selling price">
                       <b-form-input
                         :state="getValidationState(validationContext)"
                         aria-describedby="ProductPrice-feedback"
@@ -160,6 +162,7 @@
                 </b-col>
 
                 <!-- Unit Product -->
+                <b-col cols="12"><h5 class="product-section-heading">Units and stock</h5></b-col>
                 <b-col md="6" class="mb-2">
                   <validation-provider name="Unit Product" :rules="{ required: true}">
                     <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitProduct')">
@@ -235,6 +238,7 @@
                   </validation-provider>
                 </b-col>
 
+                <b-col cols="12"><h5 class="product-section-heading">Tax and discounts</h5></b-col>
                 <!-- Philippine VAT classification. A 0% rate and a VAT-exempt
                      sale are the same number but different filings, so this is a
                      classification rather than another rate. -->
@@ -258,6 +262,7 @@
                   </b-form-group>
                 </b-col>
 
+                <b-col cols="12"><h5 class="product-section-heading">Tracking and availability</h5></b-col>
                 <!-- Batch tracking. Off by default: a product only opts in when
                      its lots and expiry dates actually need following. -->
                 <b-col md="6" v-if="!product.is_service">
@@ -321,6 +326,7 @@
                 </b-col>
 
                 <b-col md="12" class="mb-2">
+                  <h5 class="product-section-heading">Notes</h5>
                   <b-form-group :label="$t('Note')">
                     <textarea
                       rows="4"
@@ -337,7 +343,7 @@
             <!-- upload-multiple-image -->
             <b-card>
               <div class="card-header">
-                <h5>{{$t('MultipleImage')}}</h5>
+                <h5>Product images</h5>
               </div>
               <div class="card-body">
                 <b-row class="form-group">
@@ -368,7 +374,7 @@
             </b-card>
           </b-col>
           <b-col md="12" class="mt-3">
-             <b-button variant="primary" type="submit" :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
+             <b-button variant="primary" type="submit" :disabled="SubmitProcessing">Save product</b-button>
               <div v-once class="typo__p" v-if="SubmitProcessing">
                 <div class="spinner sm spinner-primary mt-3"></div>
               </div>
@@ -606,3 +612,6 @@ export default {
   }
 };
 </script>
+<style scoped>
+.product-section-heading { margin: 1.25rem 0 .75rem; padding-bottom: .45rem; border-bottom: 1px solid #e2e8e7; color: #0b6f52; font-size: 1rem; font-weight: 700; }
+</style>

@@ -98,7 +98,10 @@ class ProductSalesAnalyticsController extends Controller
         }
         usort($results, fn ($a, $b) => $b['predicted_revenue'] <=> $a['predicted_revenue'] ?: strcmp($a['code'], $b['code']));
 
-        $bottom = $results;
+        // Sparse sales history is still useful to inspect, but its fitted
+        // number should not be ranked as a dependable prediction.
+        $forecastable = array_values(array_filter($results, fn ($row) => $row['trend'] !== 'limited'));
+        $bottom = $forecastable;
         usort($bottom, fn ($a, $b) => $a['predicted_revenue'] <=> $b['predicted_revenue'] ?: strcmp($a['code'], $b['code']));
         $trending = array_values(array_filter($results, fn ($row) => $row['trend'] === 'rising'));
         usort($trending, fn ($a, $b) => $b['unit_slope_per_week'] <=> $a['unit_slope_per_week']);
@@ -119,8 +122,9 @@ class ProductSalesAnalyticsController extends Controller
                 'products_with_sales' => count($results),
                 'trending_products' => count($trending),
                 'limited_data_products' => count(array_filter($results, fn ($row) => $row['trend'] === 'limited')),
+                'forecastable_products' => count($forecastable),
             ],
-            'top' => array_slice($results, 0, 10),
+            'top' => array_slice($forecastable, 0, 10),
             'bottom' => array_slice($bottom, 0, 10),
             'trending' => array_slice($trending, 0, 10),
             'products' => $results,
