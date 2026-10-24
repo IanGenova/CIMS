@@ -66,4 +66,37 @@ class K82DashboardSalesTest extends DatatestCase
         $this->assertSame('bag', $top['unit_product'], 'fixture: the dashboard labels cement in bags');
         $this->assertEquals(10, (float) $top['quantity'], "K82: one box of 10 bags shows as {$top['quantity']} bag(s)");
     }
+
+    public function test_monthly_top_products_are_ranked_by_completed_sales_value()
+    {
+        $this->as($this->owner);
+        $expensive = $this->product(['name' => 'Expensive single sale', 'price' => 1000], 10, 10);
+        $this->storeSale([$this->line(1)])->assertOk();
+        $this->storeSale([$this->line(1)])->assertOk();
+        $this->storeSale([$this->lineOf($expensive, 1, 1000)])->assertOk();
+
+        $products = $this->dashboard()['products'];
+        $this->assertSame('Expensive single sale', $products[0]['name']);
+        $this->assertEquals(1000, $products[0]['total']);
+    }
+
+    public function test_stock_alerts_prioritize_empty_shelves_and_keep_zero_threshold_meaningful()
+    {
+        $this->as($this->owner);
+        for ($i = 0; $i < 5; $i++) {
+            $this->product(['name' => 'Moderate shortage ' . $i, 'stock_alert' => 2], 1, 10);
+        }
+        $empty = $this->product(['name' => 'Empty shelf', 'stock_alert' => 0], 0, 10);
+        $code = \Illuminate\Support\Facades\DB::table('products')->where('id', $empty)->value('code');
+
+        $alerts = $this->dashboard()['stock_alert'];
+        $this->assertCount(5, $alerts);
+        $this->assertSame($code, $alerts[0]['code']);
+        $this->assertSame('out_of_stock', $alerts[0]['alert_status']);
+        $this->assertEquals(0, $alerts[0]['stock_alert']);
+
+        $full = $this->getJson('/api/report/stock_alert')->assertOk()->json('products.data');
+        $this->assertSame($code, $full[0]['code']);
+        $this->assertSame('out_of_stock', $full[0]['alert_status']);
+    }
 }

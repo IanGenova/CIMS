@@ -1,28 +1,9 @@
  <template>
   <div class="footer_wrap">
     <!-- Footer Start -->
-    <div class="flex-grow-1"></div>
     <div class="app-footer">
-      <div class="row">
-        <div class="col-md-9">
-          <p><strong>{{currentUser.footer}}</strong></p>
-        </div>
-      </div>
-      <div
-        class="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center"
-      >
-        <div class="d-flex align-items-center">
-          <img class="logo" :src="'/images/'+currentUser.logo" alt width="60" height="60">
-          <div>
-            <div>
-              <p class="m-0">&copy; {{currentYear}} {{$t('developed_by')}} {{currentUser.developed_by}}</p>
-              <p class="m-0">All rights reserved</p>
-            </div>
-          </div>
-          <span class="flex-grow-1"></span>
-        </div>
-      </div>
-      <!-- fotter end -->
+      <span v-if="currentUser && currentUser.footer">{{ currentUser.footer }}</span>
+      <span>&copy; {{currentYear}} {{currentUser && currentUser.developed_by}}</span>
     </div>
   </div>
 </template>

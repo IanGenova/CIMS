@@ -80,6 +80,7 @@ class ProductsController extends BaseController
             $item['brand'] = $product['brand'] ? $product['brand']->name : 'N/D';
             $item['unit'] = $product['unit']->ShortName;
             $item['price'] = $product->price;
+            $item['quantity'] = 0;
 
             $product_warehouse_data = product_warehouse::where('product_id', $product->id)
                 ->where('deleted_at', '=', null)
@@ -1004,26 +1005,38 @@ class ProductsController extends BaseController
     public function Products_Alert(request $request)
     {
         $this->authorizeForUser($request->user('api'), 'Stock_Alerts', Product::class);
+        $allowed = \App\utils\WarehouseAccess::allowedIds();
 
         $product_warehouse_data = product_warehouse::with('warehouse', 'product', 'productVariant')
             ->join('products', 'product_warehouse.product_id', '=', 'products.id')
-            ->whereRaw('qte <= stock_alert')
+            ->where(function ($query) {
+                $query->where('product_warehouse.qte', '<=', 0)
+                    ->orWhere(function ($threshold) {
+                        $threshold->where('products.stock_alert', '>', 0)
+                            ->whereColumn('product_warehouse.qte', '<=', 'products.stock_alert');
+                    });
+            })
             // A service is never stocked, so never low; a deleted product is
             // not shown either -- the same rule as the badge (LowStock, K83).
             ->where('products.is_service', false)
             ->whereNull('products.deleted_at')
+            ->when($allowed !== null, function ($query) use ($allowed) {
+                $query->whereIn('product_warehouse.warehouse_id', $allowed);
+            })
             ->where(function ($query) use ($request) {
                 return $query->when($request->filled('warehouse'), function ($query) use ($request) {
-                    return $query->where('warehouse_id', $request->warehouse);
+                    return $query->where('product_warehouse.warehouse_id', $request->warehouse);
                 });
-            })->where('product_warehouse.deleted_at', null)->get();
+            })->where('product_warehouse.deleted_at', null)
+            ->orderByRaw('CASE WHEN product_warehouse.qte <= 0 THEN 0 ELSE 1 END')
+            ->orderByRaw('(products.stock_alert - product_warehouse.qte) DESC')
+            ->orderBy('products.name')->get();
 
         $data = [];
 
         if ($product_warehouse_data->isNotEmpty()) {
 
             foreach ($product_warehouse_data as $product_warehouse) {
-                if ($product_warehouse->qte <= $product_warehouse['product']->stock_alert) {
                     if ($product_warehouse->product_variant_id !== null) {
                         $item['code'] = $product_warehouse['productVariant']->name . '-' . $product_warehouse['product']->code;
                     } else {
@@ -1033,8 +1046,8 @@ class ProductsController extends BaseController
                     $item['name'] = $product_warehouse['product']->name;
                     $item['warehouse'] = $product_warehouse['warehouse']->name;
                     $item['stock_alert'] = $product_warehouse['product']->stock_alert;
+                    $item['alert_status'] = $product_warehouse->qte <= 0 ? 'out_of_stock' : 'below_reorder_point';
                     $data[] = $item;
-                }
             }
         }
 
@@ -1047,7 +1060,10 @@ class ProductsController extends BaseController
         $data_collection = $collection->slice($offSet, $perPage)->values();
 
         $products = new LengthAwarePaginator($data_collection, count($data), $perPage, Paginator::resolveCurrentPage(), array('path' => Paginator::resolveCurrentPath()));
-        $warehouses = Warehouse::where('deleted_at', null)->get(['id', 'name']);
+        $warehouses = Warehouse::where('deleted_at', null)
+            ->when($allowed !== null, function ($query) use ($allowed) {
+                $query->whereIn('id', $allowed);
+            })->get(['id', 'name']);
 
         return response()->json([
             'products' => $products,

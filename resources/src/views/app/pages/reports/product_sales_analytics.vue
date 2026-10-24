@@ -47,7 +47,7 @@
       </b-alert>
 
       <b-alert v-if="summary.limited_data_products" show variant="warning" class="mb-3">
-        {{ summary.limited_data_products }} {{ summary.limited_data_products === 1 ? 'product has' : 'products have' }} fewer than four weeks with sales. Their forecast figures are withheld until more history is available.
+        {{ summary.limited_data_products }} {{ summary.limited_data_products === 1 ? 'product has' : 'products have' }} fewer than four weeks with sales. Forecast figures are withheld. Historical rankings below use completed sales already recorded, not predictions.
       </b-alert>
 
       <b-card v-if="!products.length" class="mb-3">
@@ -55,38 +55,60 @@
       </b-card>
 
       <template v-else>
-        <b-row>
+        <b-row v-if="summary.forecastable_products">
           <b-col lg="4" class="mb-3">
             <b-card title="Most projected sales" class="h-100">
-              <p v-if="!top.length" class="text-muted mb-0">No products have enough sales history to rank yet.</p>
-              <div v-for="(row, index) in top" :key="row.product_id" class="rank-row" @click="select(row)">
+              <p v-if="!top.length" class="text-muted">Forecast ranking needs four weeks with sales per product.</p>
+              <button v-for="(row, index) in top" :key="row.product_id" type="button" class="rank-row" @click="select(row)">
                 <span class="rank-number">{{ index + 1 }}</span>
                 <span class="rank-name"><strong>{{ row.name }}</strong><small>{{ row.code }}</small></span>
                 <span class="text-right"><strong>{{ money(row.predicted_revenue) }}</strong><small>{{ trendLabel(row.trend) }}</small></span>
-              </div>
+              </button>
             </b-card>
           </b-col>
           <b-col lg="4" class="mb-3">
             <b-card title="Least projected sales" class="h-100">
-              <p v-if="!bottom.length" class="text-muted mb-0">No products have enough sales history to rank yet.</p>
-              <div v-for="(row, index) in bottom" :key="row.product_id" class="rank-row" @click="select(row)">
+              <p v-if="!bottom.length" class="text-muted">Forecast ranking needs four weeks with sales per product.</p>
+              <button v-for="(row, index) in bottom" :key="row.product_id" type="button" class="rank-row" @click="select(row)">
                 <span class="rank-number">{{ index + 1 }}</span>
                 <span class="rank-name"><strong>{{ row.name }}</strong><small>{{ row.code }}</small></span>
                 <span class="text-right"><strong>{{ money(row.predicted_revenue) }}</strong><small>{{ trendLabel(row.trend) }}</small></span>
-              </div>
+              </button>
             </b-card>
           </b-col>
           <b-col lg="4" class="mb-3">
             <b-card title="Trending products" class="h-100">
               <p v-if="!trending.length" class="text-muted mb-0">No clear upward unit trends yet. More weekly sales may improve the signal.</p>
-              <div v-for="(row, index) in trending" :key="row.product_id" class="rank-row" @click="select(row)">
+              <button v-for="(row, index) in trending" :key="row.product_id" type="button" class="rank-row" @click="select(row)">
                 <span class="rank-number">{{ index + 1 }}</span>
                 <span class="rank-name"><strong>{{ row.name }}</strong><small>{{ row.code }}</small></span>
                 <span class="text-right text-success"><strong>+{{ quantity(row.unit_slope_per_week) }}</strong><small>{{ row.unit }}/week</small></span>
-              </div>
+              </button>
             </b-card>
           </b-col>
         </b-row>
+
+        <b-card v-if="!summary.forecastable_products" class="mb-3" title="Historical sales while forecasts build">
+          <p class="text-muted">Completed sales value in the selected {{ historyWeeks }} weeks. These are recorded results, not future predictions.</p>
+          <b-row>
+            <b-col md="6" class="mb-3 mb-md-0">
+              <h5>Highest recorded sales</h5>
+              <button v-for="(row, index) in historicalTop" :key="row.product_id" type="button" class="rank-row" @click="select(row)">
+                <span class="rank-number">{{ index + 1 }}</span>
+                <span class="rank-name"><strong>{{ row.name }}</strong><small>{{ row.code }}</small></span>
+                <span class="text-right"><strong>{{ money(row.observed_revenue) }}</strong><small>{{ Math.max(0, 4 - row.active_weeks) }} more selling weeks for forecast</small></span>
+              </button>
+            </b-col>
+            <b-col md="6">
+              <h5>Lowest recorded sales</h5>
+              <button v-for="(row, index) in historicalBottom" :key="row.product_id" type="button" class="rank-row" @click="select(row)">
+                <span class="rank-number">{{ index + 1 }}</span>
+                <span class="rank-name"><strong>{{ row.name }}</strong><small>{{ row.code }}</small></span>
+                <span class="text-right"><strong>{{ money(row.observed_revenue) }}</strong><small>{{ Math.max(0, 4 - row.active_weeks) }} more selling weeks for forecast</small></span>
+              </button>
+            </b-col>
+          </b-row>
+        </b-card>
 
         <b-card v-if="selected" class="mb-3">
           <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
@@ -114,7 +136,8 @@
             <span class="mr-3">Green: recorded sales</span>
             <span v-if="selected.trend !== 'limited'" class="mr-3">Purple dashed: linear forecast</span>
             <span class="mr-3">Weeks with sales: {{ selected.active_weeks }}/{{ historyWeeks }}</span>
-            <span>Historical line fit (R²): {{ Math.round(selected.unit_fit_r_squared * 100) }}% — not a probability of future accuracy</span>
+            <span v-if="selected.trend !== 'limited' && selected.unit_fit_r_squared !== null">Historical line fit (R²): {{ Math.round(selected.unit_fit_r_squared * 100) }}% — not a probability of future accuracy</span>
+            <span v-if="selected.trend === 'limited'">{{ Math.max(0, 4 - selected.active_weeks) }} more selling weeks needed for a forecast</span>
           </div>
         </b-card>
 
@@ -160,7 +183,7 @@ export default {
       period: null,
       scope: { own_sales_only: false },
       summary: { products_with_sales: 0, trending_products: 0, limited_data_products: 0, forecastable_products: 0 },
-      top: [], bottom: [], trending: [], products: [],
+      top: [], bottom: [], trending: [], historicalTop: [], historicalBottom: [], products: [],
       selectedProductId: null,
       search: "",
       isLoading: true,
@@ -209,6 +232,8 @@ export default {
         this.top = data.top;
         this.bottom = data.bottom;
         this.trending = data.trending;
+        this.historicalTop = data.historical_top || [];
+        this.historicalBottom = data.historical_bottom || [];
         this.products = data.products;
         if (!this.products.some(row => row.product_id === this.selectedProductId)) {
           this.selectedProductId = this.products.length ? this.products[0].product_id : null;
@@ -234,7 +259,8 @@ export default {
 </script>
 
 <style scoped>
-.rank-row { display: flex; gap: 0.7rem; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid #edf0f2; cursor: pointer; }
+.rank-row { display: flex; width: 100%; text-align: left; background: transparent; border: 0; gap: 0.7rem; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid #edf0f2; cursor: pointer; }
+.rank-row:focus-visible { outline: 2px solid #087a56; outline-offset: 2px; }
 .rank-row:hover, .product-row:hover { background: #f3faf7; }
 .rank-row:last-child { border-bottom: 0; }
 .rank-number { width: 1.5rem; color: #087a56; font-weight: 700; flex: none; }

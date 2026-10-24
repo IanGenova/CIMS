@@ -892,8 +892,6 @@ router.beforeEach((to, from, next) => {
         NProgress.start();
         NProgress.set(0.1);
     }
-    next();
-
     if (
         store.state.language.language &&
         store.state.language.language !== i18n.locale
@@ -904,7 +902,7 @@ router.beforeEach((to, from, next) => {
         store.dispatch("language/setLanguage", navigator.languages).then(() => {
             i18n.locale = store.state.language.language;
             next();
-        });
+        }).catch(() => next());
     } else {
         next();
     }

@@ -1,14 +1,13 @@
 <template>
     <div>
-       <div class="breadcrumb">
+       <nav class="breadcrumb" aria-label="Current page">
             <slot name="header">
                <h1>{{page}}</h1>
-                    <ul>
-                        <li><a href=""> {{folder}} </a></li>
-                        <li> {{page}} </li>
+                    <ul v-if="folder && folder !== page">
+                        <li>{{folder}}</li>
                     </ul>
             </slot>
-        </div>
+        </nav>
         <div class="separator-breadcrumb border-top"></div>
     </div>
 </template>

@@ -105,6 +105,10 @@ class ProductSalesAnalyticsController extends Controller
         usort($bottom, fn ($a, $b) => $a['predicted_revenue'] <=> $b['predicted_revenue'] ?: strcmp($a['code'], $b['code']));
         $trending = array_values(array_filter($results, fn ($row) => $row['trend'] === 'rising'));
         usort($trending, fn ($a, $b) => $b['unit_slope_per_week'] <=> $a['unit_slope_per_week']);
+        $historicalTop = $results;
+        usort($historicalTop, fn ($a, $b) => $b['observed_revenue'] <=> $a['observed_revenue'] ?: strcmp($a['code'], $b['code']));
+        $historicalBottom = $results;
+        usort($historicalBottom, fn ($a, $b) => $a['observed_revenue'] <=> $b['observed_revenue'] ?: strcmp($a['code'], $b['code']));
 
         return response()->json([
             'period' => [
@@ -127,6 +131,8 @@ class ProductSalesAnalyticsController extends Controller
             'top' => array_slice($forecastable, 0, 10),
             'bottom' => array_slice($bottom, 0, 10),
             'trending' => array_slice($trending, 0, 10),
+            'historical_top' => array_slice($historicalTop, 0, 5),
+            'historical_bottom' => array_slice($historicalBottom, 0, 5),
             'products' => $results,
         ]);
     }

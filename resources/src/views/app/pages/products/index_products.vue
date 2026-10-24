@@ -3,6 +3,7 @@
     <breadcumb :page="$t('productsList')" :folder="$t('Products')"/>
     <div v-if="isLoading" class="loading_page spinner spinner-primary mr-3"></div>
     <div v-else>
+      <p class="product-list-hint">On hand is the total physical quantity across all warehouses. Open a product to see each location; reserved stock can reduce what is available to sell.</p>
       <vue-good-table
         mode="remote"
         :columns="columns"
@@ -27,12 +28,13 @@
         nextLabel: 'next',
         prevLabel: 'prev',
       }"
-        styleClass="tableOne vgt-table"
+        styleClass="tableOne vgt-table product-list-table"
       >
         <div slot="selected-row-actions">
           <button class="btn btn-danger" @click="delete_by_selected()">{{$t('Del')}}</button>
         </div>
         <div slot="table-actions" class="mt-2 mb-3">
+          <b-form-checkbox v-model="showExtraColumns" switch inline class="mr-2 mb-2">More columns</b-form-checkbox>
           <b-button variant="outline-info m-1" size="sm" v-b-toggle.sidebar-right>
             <i class="i-Filter-2"></i>
             {{ $t("Filter") }}
@@ -96,15 +98,16 @@
               <i class="i-Close-Window text-25 text-danger"></i>
             </button>
           </span>
-          <span v-else-if="props.column.field == 'image'">
+          <span v-else-if="props.column.field == 'name'" class="product-name-cell">
             <b-img
               thumbnail
-              height="50"
-              width="50"
+              height="42"
+              width="42"
               fluid
               :src="'/images/products/' + props.row.image"
-              alt="image"
+              alt=""
             ></b-img>
+            <span>{{ props.row.name }}</span>
           </span>
         </template>
       </vue-good-table>
@@ -269,6 +272,7 @@ export default {
       totalRows: "",
       isLoading: true,
       spinner: false,
+      showExtraColumns: false,
       limit: "10",
       Filter_brand: "",
       Filter_code: "",
@@ -284,15 +288,7 @@ export default {
   computed: {
     ...mapGetters(["currentUserPermissions", "currentUser"]),
     columns() {
-      return [
-        {
-          label: this.$t("image"),
-          field: "image",
-          type: "image",
-          html: true,
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
+      const columns = [
         {
           label: this.$t("Name_product"),
           field: "name",
@@ -306,18 +302,6 @@ export default {
           thClass: "text-left"
         },
         {
-          label: this.$t("Categorie"),
-          field: "category",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-        {
-          label: this.$t("Brand"),
-          field: "brand",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-        {
           label: this.$t("Price"),
           field: "price",
           formatFn: this.money,
@@ -326,13 +310,7 @@ export default {
           thClass: "text-left"
         },
         {
-          label: this.$t("Unit"),
-          field: "unit",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-        {
-          label: this.$t("Quantity"),
+          label: "On hand",
           field: "quantity",
           type: "decimal",
           tdClass: "text-left",
@@ -347,6 +325,13 @@ export default {
           sortable: false
         }
       ];
+      if (this.showExtraColumns) {
+        columns.splice(2, 0,
+          { label: this.$t("Categorie"), field: "category", tdClass: "text-left", thClass: "text-left" },
+          { label: this.$t("Brand"), field: "brand", tdClass: "text-left", thClass: "text-left" },
+          { label: this.$t("Unit"), field: "unit", tdClass: "text-left", thClass: "text-left" });
+      }
+      return columns;
     }
   },
   methods: {
@@ -703,8 +688,11 @@ export default {
 </script>
 
 <style scoped>
+.product-list-hint { color: #52645e; font-size: .875rem; margin: 0 0 .75rem; }
+.product-name-cell { display: inline-flex; align-items: center; gap: .7rem; font-weight: 600; min-width: 0; }
+.product-name-cell img { flex: none; }
 .product-actions { display: inline-flex; align-items: center; gap: .25rem; }
-.product-table-action { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 36px; border-radius: .35rem; }
+.product-table-action { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; min-height: 42px; border-radius: .35rem; }
 .product-table-action:hover, .product-table-action:focus { background: #edf5f2; outline: 2px solid #0b6f52; outline-offset: 1px; }
 .product-delete-action { border: 0; background: transparent; cursor: pointer; }
 .import-errors {

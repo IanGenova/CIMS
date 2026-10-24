@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $shopName }} · Shop</title>
-    <link rel="stylesheet" href="{{ asset('css/shop.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/shop.css') }}?v={{ filemtime(public_path('css/shop.css')) }}">
 </head>
 <body>
 <header class="topbar">
@@ -28,7 +28,7 @@
         @if (!$ready)
             <div class="empty-state">The online shop is being prepared. Please check back soon.</div>
         @else
-            <div class="filters"><label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search product or code" autocomplete="off"></label><select id="category"><option value="">All categories</option>@foreach($categories as $category)<option value="{{ $category->id }}">{{ $category->name }}</option>@endforeach</select><span id="result-count"></span></div>
+            <div class="filters"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" aria-label="Search products by name or code" placeholder="Search product or code" autocomplete="off"></label><select id="category" aria-label="Filter by category"><option value="">All categories</option>@foreach($categories as $category)<option value="{{ $category->id }}">{{ $category->name }}</option>@endforeach</select><span id="result-count"></span></div>
             <div id="catalog-status" class="catalog-status" role="status"></div>
             <div id="product-grid" class="product-grid"></div>
             <button type="button" id="load-more" class="button button-outline" hidden>Load more products</button>

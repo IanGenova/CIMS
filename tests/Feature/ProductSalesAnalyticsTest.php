@@ -95,6 +95,8 @@ class ProductSalesAnalyticsTest extends TestCase
         $visible = $this->getJson('/api/report/product-sales-analytics?history_weeks=4')->assertOk()
             ->assertJsonCount(1, 'products')->assertJsonCount(1, 'warehouses');
         $visible->assertJsonCount(0, 'top')->assertJsonCount(0, 'bottom');
+        $visible->assertJsonCount(1, 'historical_top')->assertJsonCount(1, 'historical_bottom');
+        $this->assertEqualsWithDelta(120, $visible->json('historical_top.0.observed_revenue'), 0.01);
         $this->assertSame(0, $visible->json('summary.forecastable_products'));
         $this->assertFalse($visible->json('scope.own_sales_only'));
         $this->assertEqualsWithDelta(12, $visible->json('products.0.observed_units'), 0.01);

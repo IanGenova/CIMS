@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><title>Order {{ $order->Ref }} · {{ $shopName }}</title><link rel="stylesheet" href="{{ asset('css/shop.css') }}"></head>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><title>Order {{ $order->Ref }} · {{ $shopName }}</title><link rel="stylesheet" href="{{ asset('css/shop.css') }}?v={{ filemtime(public_path('css/shop.css')) }}"></head>
 <body class="receipt-page"><header class="topbar"><a href="/shop" class="brand"><span class="brand-icon">N</span><span>{{ $shopName }}</span></a><a href="/shop" class="back-link">← Continue shopping</a></header>
 <main class="receipt-wrap"><div class="eyebrow">YOUR ORDER</div><h1>Thank you for ordering.</h1><p class="receipt-lead">Keep this private link to check the latest status of your order.</p>
 @if(session('payment_error'))<div class="error">{{ session('payment_error') }}</div>@endif

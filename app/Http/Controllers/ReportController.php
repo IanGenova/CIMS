@@ -471,8 +471,8 @@ class ReportController extends BaseController
                 DB::raw('sum(total) as total'),
                 DB::raw('sum(sale_details.quantity * ' . $factor('line_unit') . ') / MAX(' . $factor('units') . ') as quantity'),
             )
-            ->groupBy('products.name', 'units.ShortName')
-            ->orderBy('count', 'desc')
+            ->groupBy('products.id', 'products.name', 'units.ShortName')
+            ->orderBy('total', 'desc')
             ->take(5)
             ->get();
 
@@ -485,18 +485,31 @@ class ReportController extends BaseController
         $allowed = \App\utils\WarehouseAccess::allowedIds();
         $product_warehouse_data = ! $seesStock ? collect() : product_warehouse::with('warehouse', 'product' ,'productVariant')
         ->join('products', 'product_warehouse.product_id', '=', 'products.id')
-        ->whereRaw('qte <= stock_alert')
+        ->where('products.is_service', false)
+        ->whereNull('products.deleted_at')
+        // A zero reorder point disables the low-stock threshold, but an empty
+        // shelf is still an out-of-stock alert. Order before taking five so
+        // an urgent shortage cannot be hidden behind arbitrary database rows.
+        ->where(function ($q) {
+            $q->where('product_warehouse.qte', '<=', 0)
+                ->orWhere(function ($threshold) {
+                    $threshold->where('products.stock_alert', '>', 0)
+                        ->whereColumn('product_warehouse.qte', '<=', 'products.stock_alert');
+                });
+        })
         ->where('product_warehouse.deleted_at', null)
         ->when($allowed !== null, function ($q) use ($allowed) {
             $q->whereIn('product_warehouse.warehouse_id', $allowed);
         })
-        ->take('5')->get();
+        ->orderByRaw('CASE WHEN product_warehouse.qte <= 0 THEN 0 ELSE 1 END')
+        ->orderByRaw('(products.stock_alert - product_warehouse.qte) DESC')
+        ->orderBy('products.name')
+        ->take(5)->get();
 
         $stock_alert = [];
         if ($product_warehouse_data->isNotEmpty()) {
 
             foreach ($product_warehouse_data as $product_warehouse) {
-                if ($product_warehouse->qte <= $product_warehouse['product']->stock_alert) {
                     if ($product_warehouse->product_variant_id !== null) {
                         $item['code'] = $product_warehouse['productVariant']->name . '-' . $product_warehouse['product']->code;
                     } else {
@@ -506,8 +519,8 @@ class ReportController extends BaseController
                     $item['name'] = $product_warehouse['product']->name;
                     $item['warehouse'] = $product_warehouse['warehouse']->name;
                     $item['stock_alert'] = $product_warehouse['product']->stock_alert;
+                    $item['alert_status'] = $product_warehouse->qte <= 0 ? 'out_of_stock' : 'below_reorder_point';
                     $stock_alert[] = $item;
-                }
             }
 
         }

@@ -71,22 +71,24 @@
         .nav-item-hold {
           display: block;
           width: 100%;
-          padding: 26px 0;
+          padding: 12px 4px;
           color: $foreground;
           &:focus,
           &:active {
-            outline: none;
+            outline: 2px solid $primary;
+            outline-offset: -2px;
           }
+          &:hover { background: rgba($primary, 0.07); }
           .nav-icon,
           .feather {
-            font-size: 32px;
-            height: 32px;
-            width: 32px;
+            font-size: 25px;
+            height: 25px;
+            width: 25px;
             display: block;
-            margin: 0 auto 6px;
+            margin: 0 auto 3px;
           }
           .nav-text {
-            font-size: 13px;
+            font-size: 12px;
             display: block;
             font-weight: 400;
           }
@@ -134,7 +136,7 @@
           align-items: center;
           font-size: 13px;
           cursor: pointer;
-          padding: 12px 24px;
+          padding: 9px 14px;
           transition: 0.15s all ease-in;
 
           &:hover {
