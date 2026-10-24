@@ -76,7 +76,6 @@
               <strong>{{ currentUser.currency }} {{ Number(product.value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong>
             </li>
           </ol>
-          </div>
         </b-card>
       </b-col>
     </b-row>
